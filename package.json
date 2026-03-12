@@ -1,0 +1,33 @@
+{
+  "name": "boscopan",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Boscopan: crypto price alert system using x402 payments, Chainlink CRE, and on-chain smart contracts",
+  "workspaces": [
+    "server",
+    "cre/alerts"
+  ],
+  "scripts": {
+    "install:all": "npm install",
+    "dev:server": "npm run dev --workspace=server -- --chat",
+    "dev:cre": "npm run dev --workspace=cre/alerts",
+    "build:server": "npm run build --workspace=server",
+    "build:cre": "npm run build --workspace=cre/alerts",
+    "build": "npm run build:server && npm run build:cre",
+    "compile": "hardhat compile",
+    "deploy:rule-registry": "hardhat run scripts/deploy-RuleRegistry.ts --network base-sepolia"
+  },
+  "devDependencies": {
+    "@nomicfoundation/hardhat-ethers": "^3.0.0",
+    "@openzeppelin/contracts": "^5.0.2",
+    "dotenv": "^16.4.5",
+    "ethers": "^6.4.0",
+    "hardhat": "^2.22.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.6.3"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "packageManager": "yarn@1.22.22+sha512.a6b2f7906b721bba3d67d4aff083df04dad64c399707841b7acf00f6b133b7ac24255f2652fa22ae3534329dc6180534e98d17432037ff6fd140556e2bb3137e"
+}
