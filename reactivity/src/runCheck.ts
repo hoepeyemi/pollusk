@@ -36,7 +36,15 @@ export async function runAlertsCheck(config: ReactivityConfig): Promise<RunCheck
   const rules = await getAllRules(client, config.ruleRegistryAddress);
   const now = BigInt(Math.floor(Date.now() / 1000));
   const ttl = BigInt(config.ruleTTL);
-  const activeRules = rules.filter((r) => now - BigInt(r.createdAt) <= ttl);
+  const activeRules = rules.filter((r) => {
+    const createdAt = r.createdAt;
+    if (createdAt === undefined || createdAt === null) return false;
+    try {
+      return now - BigInt(createdAt) <= ttl;
+    } catch {
+      return false;
+    }
+  });
 
   if (activeRules.length === 0) {
     return {

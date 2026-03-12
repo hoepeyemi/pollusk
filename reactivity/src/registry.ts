@@ -54,12 +54,18 @@ export async function getAllRules(
       functionName: "getRule",
       args: [BigInt(i)],
     });
+    const id = typeof rule[0] !== "undefined" ? rule[0] : (rule as any).id;
+    const asset = typeof rule[1] !== "undefined" ? rule[1] : (rule as any).asset;
+    const condition = typeof rule[2] !== "undefined" ? rule[2] : (rule as any).condition;
+    const targetPriceUsd = typeof rule[3] !== "undefined" ? rule[3] : (rule as any).targetPriceUsd;
+    const createdAt = typeof rule[4] !== "undefined" ? rule[4] : (rule as any).createdAt;
+    if (createdAt === undefined || createdAt === null) continue;
     rules.push({
-      id: rule[0] as `0x${string}`,
-      asset: rule[1],
-      condition: rule[2],
-      targetPriceUsd: rule[3],
-      createdAt: rule[4],
+      id: id as `0x${string}`,
+      asset: String(asset ?? ""),
+      condition: String(condition ?? ""),
+      targetPriceUsd: BigInt(targetPriceUsd ?? 0),
+      createdAt: BigInt(createdAt),
     });
   }
   return rules;
