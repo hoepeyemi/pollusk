@@ -6,12 +6,26 @@ import { getConfig } from "./config.js";
 export function createApp() {
   const app = express();
   app.use(express.json());
+  app.use((err: any, _req: express.Request, res: express.Response, next: express.NextFunction) => {
+    if (err instanceof SyntaxError) {
+      return res.status(400).json({ error: "Invalid JSON", details: err.message });
+    }
+    next(err);
+  });
 
   app.post("/run-check", async (_req, res) => {
     try {
       const config = getConfig();
       const result = await runAlertsCheck(config);
-      res.json({ ok: true, ...result });
+      const serialized = {
+        ...result,
+        triggered: result.triggered.map(({ rule, currentPrice, triggered: t }) => ({
+          rule: { ...rule, targetPriceUsd: Number(rule.targetPriceUsd) },
+          currentPrice,
+          triggered: t,
+        })),
+      };
+      res.json({ ok: true, ...serialized });
     } catch (e: any) {
       res.status(500).json({ ok: false, error: e?.message ?? String(e) });
     }

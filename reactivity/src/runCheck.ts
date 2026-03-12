@@ -36,10 +36,15 @@ export async function runAlertsCheck(config: ReactivityConfig): Promise<RunCheck
   const rules = await getAllRules(client, config.ruleRegistryAddress);
   const now = BigInt(Math.floor(Date.now() / 1000));
   const ttl = BigInt(config.ruleTTL);
-  const activeRules = rules.filter((r) => now - r.createdAt <= ttl);
+  const activeRules = rules.filter((r) => now - BigInt(r.createdAt) <= ttl);
 
   if (activeRules.length === 0) {
-    return { rulesCount: rules.length, triggered: [], notificationsSent: 0, message: "No active rules" };
+    return {
+      rulesCount: rules.length,
+      triggered: [],
+      notificationsSent: 0,
+      message: "No active rules",
+    };
   }
 
   const prices = await getPrices();
