@@ -1,6 +1,6 @@
 /**
  * Scheduled agent: periodically reasons over alerts + prices and produces an LLM summary.
- * Autonomous agent that interacts with onchain-backed state (alerts from CRE flow, prices).
+ * Autonomous agent that interacts with onchain-backed state (alerts, prices).
  */
 
 import OpenAI from "openai";
@@ -78,7 +78,7 @@ export async function runReasoningCycle(): Promise<{ summary: string; alertsCoun
 }
 
 /**
- * Run the same "check" as the cron: which alerts would trigger now. No CRE invocation, no Pushover.
+ * Run the same "check" as the cron: which alerts would trigger now. No reactivity invocation, no Pushover.
  */
 export async function runAlertsCheckNow(): Promise<{
   triggered: { id: string; asset: string; condition: string; targetPriceUsd: number; currentPrice: number }[];

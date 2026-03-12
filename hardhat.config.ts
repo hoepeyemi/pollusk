@@ -8,12 +8,12 @@ import type { HardhatUserConfig } from "hardhat/config";
 import "@nomicfoundation/hardhat-ethers";
 
 const DEPLOYER_PRIVATE_KEY =
-  process.env.DEPLOYER_PRIVATE_KEY ?? process.env.CRE_ETH_PRIVATE_KEY ?? "";
-const BASE_SEPOLIA_RPC = process.env.BASE_SEPOLIA_RPC_URL ?? "https://sepolia.base.org";
+  process.env.DEPLOYER_PRIVATE_KEY ?? process.env.CRE_ETH_PRIVATE_KEY ?? process.env.PRIVATE_KEY ?? "";
+const RPC_URL = process.env.RPC_URL ?? "https://dream-rpc.somnia.network/";
 
 const config: HardhatUserConfig = {
   solidity: {
-    version: "0.8.24",
+    version: "0.8.30",
     settings: {
       optimizer: { enabled: true, runs: 200 },
     },
@@ -22,10 +22,11 @@ const config: HardhatUserConfig = {
     sources: "./contracts",
   },
   networks: {
-    "base-sepolia": {
-      url: BASE_SEPOLIA_RPC,
-      chainId: 84532,
-      accounts: DEPLOYER_PRIVATE_KEY.length > 10 ? [DEPLOYER_PRIVATE_KEY] : [],
+    somniaTestnet: {
+      url: RPC_URL,
+      chainId: 50312,
+      accounts: DEPLOYER_PRIVATE_KEY.length > 10 ? [DEPLOYER_PRIVATE_KEY.replace(/^0x/, "")] : [],
+      timeout: 120000,
     },
     hardhat: {
       chainId: 31337,

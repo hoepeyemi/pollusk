@@ -1,12 +1,12 @@
 {
   "_format": "hh-sol-cache-2",
   "files": {
-    "C:\\Users\\XPS\\boscopan\\contracts\\interfaces\\IERC165.sol": {
-      "lastModificationDate": 1772024236580,
+    "C:\\Users\\jwavo\\pollusk\\contracts\\interfaces\\IERC165.sol": {
+      "lastModificationDate": 1773329576934,
       "contentHash": "fe75c4debc5105f15dc03cd61487331c",
       "sourceName": "contracts/interfaces/IERC165.sol",
       "solcConfig": {
-        "version": "0.8.24",
+        "version": "0.8.30",
         "settings": {
           "optimizer": {
             "enabled": true,
@@ -37,12 +37,12 @@
         "IERC165"
       ]
     },
-    "C:\\Users\\XPS\\boscopan\\contracts\\interfaces\\ReceiverTemplate.sol": {
-      "lastModificationDate": 1772024236585,
+    "C:\\Users\\jwavo\\pollusk\\contracts\\interfaces\\ReceiverTemplate.sol": {
+      "lastModificationDate": 1773329576935,
       "contentHash": "413008a18cee0f09b4edf097b4266989",
       "sourceName": "contracts/interfaces/ReceiverTemplate.sol",
       "solcConfig": {
-        "version": "0.8.24",
+        "version": "0.8.30",
         "settings": {
           "optimizer": {
             "enabled": true,
@@ -77,12 +77,12 @@
         "ReceiverTemplate"
       ]
     },
-    "C:\\Users\\XPS\\boscopan\\contracts\\interfaces\\IReceiver.sol": {
-      "lastModificationDate": 1772024236583,
+    "C:\\Users\\jwavo\\pollusk\\contracts\\interfaces\\IReceiver.sol": {
+      "lastModificationDate": 1773329576934,
       "contentHash": "8239c4e8766580be36d3815b64d65e2b",
       "sourceName": "contracts/interfaces/IReceiver.sol",
       "solcConfig": {
-        "version": "0.8.24",
+        "version": "0.8.30",
         "settings": {
           "optimizer": {
             "enabled": true,
@@ -115,12 +115,12 @@
         "IReceiver"
       ]
     },
-    "C:\\Users\\XPS\\boscopan\\node_modules\\@openzeppelin\\contracts\\access\\Ownable.sol": {
-      "lastModificationDate": 1753132434804,
+    "C:\\Users\\jwavo\\pollusk\\node_modules\\@openzeppelin\\contracts\\access\\Ownable.sol": {
+      "lastModificationDate": 1771592173320,
       "contentHash": "d3c790edc9ccf808a17c5a6cd13614fd",
       "sourceName": "@openzeppelin/contracts/access/Ownable.sol",
       "solcConfig": {
-        "version": "0.8.24",
+        "version": "0.8.30",
         "settings": {
           "optimizer": {
             "enabled": true,
@@ -153,12 +153,12 @@
         "Ownable"
       ]
     },
-    "C:\\Users\\XPS\\boscopan\\node_modules\\@openzeppelin\\contracts\\utils\\Context.sol": {
-      "lastModificationDate": 1753132433008,
+    "C:\\Users\\jwavo\\pollusk\\node_modules\\@openzeppelin\\contracts\\utils\\Context.sol": {
+      "lastModificationDate": 1771592164384,
       "contentHash": "67bfbc07588eb8683b3fd8f6f909563e",
       "sourceName": "@openzeppelin/contracts/utils/Context.sol",
       "solcConfig": {
-        "version": "0.8.24",
+        "version": "0.8.30",
         "settings": {
           "optimizer": {
             "enabled": true,
@@ -189,12 +189,12 @@
         "Context"
       ]
     },
-    "C:\\Users\\XPS\\boscopan\\contracts\\RuleRegistry.sol": {
-      "lastModificationDate": 1772024236578,
-      "contentHash": "d6e87e0eaf3fbe24cf5cbc63cbdc31ed",
+    "C:\\Users\\jwavo\\pollusk\\contracts\\RuleRegistry.sol": {
+      "lastModificationDate": 1773337966130,
+      "contentHash": "67a80678b4f2fc55ee120f78225252bb",
       "sourceName": "contracts/RuleRegistry.sol",
       "solcConfig": {
-        "version": "0.8.24",
+        "version": "0.8.30",
         "settings": {
           "optimizer": {
             "enabled": true,
@@ -218,7 +218,7 @@
         }
       },
       "imports": [
-        "./interfaces/ReceiverTemplate.sol",
+        "@openzeppelin/contracts/access/Ownable.sol",
         "./interfaces/IERC20.sol"
       ],
       "versionPragmas": [
@@ -228,12 +228,12 @@
         "RuleRegistry"
       ]
     },
-    "C:\\Users\\XPS\\boscopan\\contracts\\interfaces\\IERC20.sol": {
-      "lastModificationDate": 1772024236581,
-      "contentHash": "f1428e08e81373ccfcf2c1dac51c92eb",
+    "C:\\Users\\jwavo\\pollusk\\contracts\\interfaces\\IERC20.sol": {
+      "lastModificationDate": 1773333936240,
+      "contentHash": "935d733e14ef9d4519f9934c1118b2f4",
       "sourceName": "contracts/interfaces/IERC20.sol",
       "solcConfig": {
-        "version": "0.8.24",
+        "version": "0.8.30",
         "settings": {
           "optimizer": {
             "enabled": true,
@@ -262,6 +262,230 @@
       ],
       "artifacts": [
         "IERC20"
+      ]
+    },
+    "C:\\Users\\jwavo\\pollusk\\node_modules\\@somnia-chain\\reactivity-contracts\\contracts\\SomniaEventHandler.sol": {
+      "lastModificationDate": 1773333460927,
+      "contentHash": "dd88246ece2d5293e6ae048b29d8cfde",
+      "sourceName": "@somnia-chain/reactivity-contracts/contracts/SomniaEventHandler.sol",
+      "solcConfig": {
+        "version": "0.8.30",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "evmVersion": "paris",
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [
+        "./interfaces/ISomniaEventHandler.sol",
+        "./interfaces/ISomniaReactivityPrecompile.sol",
+        "./interfaces/IERC165.sol"
+      ],
+      "versionPragmas": [
+        "0.8.30"
+      ],
+      "artifacts": [
+        "SomniaEventHandler"
+      ]
+    },
+    "C:\\Users\\jwavo\\pollusk\\node_modules\\@somnia-chain\\reactivity-contracts\\contracts\\interfaces\\ISomniaEventHandler.sol": {
+      "lastModificationDate": 1773333460837,
+      "contentHash": "c99d196bb1d0cf15b02b477fe1f4588c",
+      "sourceName": "@somnia-chain/reactivity-contracts/contracts/interfaces/ISomniaEventHandler.sol",
+      "solcConfig": {
+        "version": "0.8.30",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "evmVersion": "paris",
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [],
+      "versionPragmas": [
+        "0.8.30"
+      ],
+      "artifacts": [
+        "ISomniaEventHandler"
+      ]
+    },
+    "C:\\Users\\jwavo\\pollusk\\node_modules\\@somnia-chain\\reactivity-contracts\\contracts\\interfaces\\ISomniaReactivityPrecompile.sol": {
+      "lastModificationDate": 1773333460879,
+      "contentHash": "ed918fb1f84a8e576aa7e0dbfeaebf19",
+      "sourceName": "@somnia-chain/reactivity-contracts/contracts/interfaces/ISomniaReactivityPrecompile.sol",
+      "solcConfig": {
+        "version": "0.8.30",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "evmVersion": "paris",
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [],
+      "versionPragmas": [
+        "0.8.30"
+      ],
+      "artifacts": [
+        "ISomniaReactivityPrecompile",
+        "SomniaExtensions"
+      ]
+    },
+    "C:\\Users\\jwavo\\pollusk\\node_modules\\@somnia-chain\\reactivity-contracts\\contracts\\interfaces\\IERC165.sol": {
+      "lastModificationDate": 1773333460726,
+      "contentHash": "e6b82ee7d5c0c7af0ef86ae34bcfc298",
+      "sourceName": "@somnia-chain/reactivity-contracts/contracts/interfaces/IERC165.sol",
+      "solcConfig": {
+        "version": "0.8.30",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "evmVersion": "paris",
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [],
+      "versionPragmas": [
+        "0.8.30"
+      ],
+      "artifacts": [
+        "IERC165"
+      ]
+    },
+    "C:\\Users\\jwavo\\pollusk\\contracts\\RuleRegistryReactivityHandler.sol": {
+      "lastModificationDate": 1773334194718,
+      "contentHash": "00b843b9ac5e005a67f797c4a4dc5e13",
+      "sourceName": "contracts/RuleRegistryReactivityHandler.sol",
+      "solcConfig": {
+        "version": "0.8.30",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "evmVersion": "paris",
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [
+        "@somnia-chain/reactivity-contracts/contracts/SomniaEventHandler.sol",
+        "./RuleRegistry.sol"
+      ],
+      "versionPragmas": [
+        "^0.8.20"
+      ],
+      "artifacts": [
+        "RuleRegistryReactivityHandler"
+      ]
+    },
+    "C:\\Users\\jwavo\\pollusk\\contracts\\RuleRequestEmitter.sol": {
+      "lastModificationDate": 1773334165318,
+      "contentHash": "b072a1a64947c3c3c02a28976263f346",
+      "sourceName": "contracts/RuleRequestEmitter.sol",
+      "solcConfig": {
+        "version": "0.8.30",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "evmVersion": "paris",
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [],
+      "versionPragmas": [
+        "^0.8.0"
+      ],
+      "artifacts": [
+        "RuleRequestEmitter"
       ]
     }
   }

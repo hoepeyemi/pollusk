@@ -599,7 +599,7 @@ app.use(
     {
       "POST /alerts": {
         price: "$0.01",
-        network: "base-sepolia",
+        network: "somnia-testnet",
         config: {
           description: "Create a crypto price alert",
         },

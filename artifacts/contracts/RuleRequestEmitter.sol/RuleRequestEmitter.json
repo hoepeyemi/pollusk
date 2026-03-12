@@ -1,0 +1,81 @@
+{
+  "_format": "hh-sol-artifact-1",
+  "contractName": "RuleRequestEmitter",
+  "sourceName": "contracts/RuleRequestEmitter.sol",
+  "abi": [
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": false,
+          "internalType": "bytes32",
+          "name": "id",
+          "type": "bytes32"
+        },
+        {
+          "indexed": false,
+          "internalType": "string",
+          "name": "asset",
+          "type": "string"
+        },
+        {
+          "indexed": false,
+          "internalType": "string",
+          "name": "condition",
+          "type": "string"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "targetPriceUsd",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "createdAt",
+          "type": "uint256"
+        }
+      ],
+      "name": "RuleRequested",
+      "type": "event"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "bytes32",
+          "name": "id",
+          "type": "bytes32"
+        },
+        {
+          "internalType": "string",
+          "name": "asset",
+          "type": "string"
+        },
+        {
+          "internalType": "string",
+          "name": "condition",
+          "type": "string"
+        },
+        {
+          "internalType": "uint256",
+          "name": "targetPriceUsd",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "createdAt",
+          "type": "uint256"
+        }
+      ],
+      "name": "requestRule",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    }
+  ],
+  "bytecode": "0x6080604052348015600f57600080fd5b5061020b8061001f6000396000f3fe608060405234801561001057600080fd5b506004361061002b5760003560e01c80632ce4debd14610030575b600080fd5b61004361003e3660046100da565b610045565b005b7f84bcc06aee209e8412de81f06a53f81d4ecca5170aba39506c37f639d9c7940b878787878787876040516100809796959493929190610191565b60405180910390a150505050505050565b60008083601f8401126100a357600080fd5b50813567ffffffffffffffff8111156100bb57600080fd5b6020830191508360208285010111156100d357600080fd5b9250929050565b600080600080600080600060a0888a0312156100f557600080fd5b87359650602088013567ffffffffffffffff81111561011357600080fd5b61011f8a828b01610091565b909750955050604088013567ffffffffffffffff81111561013f57600080fd5b61014b8a828b01610091565b989b979a5095989597966060870135966080013595509350505050565b81835281816020850137506000828201602090810191909152601f909101601f19169091010190565b87815260a0602082015260006101ab60a08301888a610168565b82810360408401526101be818789610168565b60608401959095525050608001529594505050505056fea264697066735822122065cc8af6fd76ee133cbd053eda55e9df0b6bba25687a5cb023e66698827b894864736f6c634300081e0033",
+  "deployedBytecode": "0x608060405234801561001057600080fd5b506004361061002b5760003560e01c80632ce4debd14610030575b600080fd5b61004361003e3660046100da565b610045565b005b7f84bcc06aee209e8412de81f06a53f81d4ecca5170aba39506c37f639d9c7940b878787878787876040516100809796959493929190610191565b60405180910390a150505050505050565b60008083601f8401126100a357600080fd5b50813567ffffffffffffffff8111156100bb57600080fd5b6020830191508360208285010111156100d357600080fd5b9250929050565b600080600080600080600060a0888a0312156100f557600080fd5b87359650602088013567ffffffffffffffff81111561011357600080fd5b61011f8a828b01610091565b909750955050604088013567ffffffffffffffff81111561013f57600080fd5b61014b8a828b01610091565b989b979a5095989597966060870135966080013595509350505050565b81835281816020850137506000828201602090810191909152601f909101601f19169091010190565b87815260a0602082015260006101ab60a08301888a610168565b82810360408401526101be818789610168565b60608401959095525050608001529594505050505056fea264697066735822122065cc8af6fd76ee133cbd053eda55e9df0b6bba25687a5cb023e66698827b894864736f6c634300081e0033",
+  "linkReferences": {},
+  "deployedLinkReferences": {}
+}

@@ -15,7 +15,7 @@ import { createInterface } from "readline";
  * 
  * This allows users to chat directly with the server without using curl.
  * The interface connects to the server's /chat endpoint and displays
- * responses including alert details and CRE workflow payloads.
+ * responses including alert details and reactivity payloads.
  * 
  * @param port - The port number the server is running on (default: 3000)
  */
@@ -87,7 +87,7 @@ export function startChatInterface(port: number = 3000): void {
         if (data.transactionHash) console.log(`  Transaction: ${data.transactionHash}`);
         console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
         if (alerts.length) {
-          console.log("\nCRE Workflow Payload(s) (copy for HTTP trigger):\n");
+          console.log("\nReactivity payload(s) (for POST /write-alert or emitter.requestRule):\n");
           for (let i = 0; i < alerts.length; i++) {
             const a = alerts[i];
             const payload = { id: a.id, asset: a.asset, condition: a.condition, targetPriceUsd: a.targetPriceUsd, createdAt: a.createdAt };

@@ -26,7 +26,7 @@ import * as scheduledAgent from "./scheduledAgent";
  * This server runs Boscopan, a crypto price alert system that combines:
  * - Natural language processing (via OpenAI API)
  * - x402 payment protocol for micropayments
- * - Chainlink CRE (Chainlink Runtime Environment) for on-chain operations
+ * - Somnia reactivity for on-chain rules and run-check (subscriptions, cron)
  *
  * Architecture:
  * - /chat: Natural language interface for creating alerts (no payment required)
@@ -35,9 +35,9 @@ import * as scheduledAgent from "./scheduledAgent";
  *   - Internally calls /alerts endpoint with x402 payment
  *
  * - /alerts: Direct alert creation endpoint (requires x402 payment)
- *   - Protected by x402 payment middleware ($0.01 USDC)
+ *   - Protected by x402 payment middleware ($0.01 STT)
  *   - Creates alert with deterministic ID (SHA256 hash)
- *   - Outputs CRE workflow payload for on-chain storage
+ *   - Can optionally write to chain via reactivity service (POST /write-alert)
  *
  * x402 Payment Flow:
  * 1. Client sends request without payment → Server responds with 402 Payment Required
@@ -46,7 +46,7 @@ import * as scheduledAgent from "./scheduledAgent";
  * 4. Server creates alert and responds with 200 + settlement transaction hash
  *
  * @see https://x402.org/ - x402 payment protocol documentation
- * @see https://docs.chain.link/cre - Chainlink CRE documentation
+ * @see https://docs.somnia.network/developer/reactivity - Somnia reactivity
  */
 
 const app = express();
@@ -141,7 +141,7 @@ async function checkFacilitatorReachable(): Promise<void> {
 
 console.log("\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
 console.log("Unified API Server");
-console.log(`   Port: ${PORT} | Payment: $0.01 USDC`);
+console.log(`   Port: ${PORT} | Payment: $0.01 STT`);
 console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n");
 
 // ============================================================================
@@ -189,11 +189,11 @@ app.use((req, res, next) => {
         const decoded = exact.evm.decodePayment(paymentHeader);
         if ("authorization" in decoded.payload) {
           const auth = decoded.payload.authorization;
-          // USDC has 6 decimals, so divide by 10^6 to get USD amount
+          // STT has 6 decimals, so divide by 10^6 to get USD amount
           const amountUsd = Number(auth.value) / 10 ** 6;
           console.log("\n  [x402 Handshake]");
           console.log("    Step 3: Client → Server: Payment authorization received");
-          console.log(`    - Amount: $${amountUsd.toFixed(2)} USDC`);
+          console.log(`    - Amount: $${amountUsd.toFixed(2)} STT`);
           console.log(`    - Payer: ${auth.from}`);
           console.log("    - Validating payment...");
         }
@@ -242,6 +242,7 @@ app.use(
     {
       "POST /alerts": {
         price: "$0.01",
+        // x402 lib only supports base-sepolia, base, etc.; use base-sepolia so middleware doesn't throw (facilitator may not support Somnia yet)
         network: "base-sepolia",
         config: {
           description: "Create a crypto price alert",
@@ -360,7 +361,7 @@ app.post("/chat", async (req, res) => {
 
 - "Show my alerts" / "list my alerts" → list_alerts (reads from the registry/backend). Summarize as "Here are your alerts from the registry: ...".
 - "What's the current ETH price?" / "BTC price?" / "price of LINK?" → get_current_price(asset) (backend returns current USD price).
-- Create alerts → create_price_alert. Cancel → cancel_alert. For "run my alerts check now" or "check alerts" use run_alerts_check (runs same logic as CRE cron).
+- Create alerts → create_price_alert. Cancel → cancel_alert. For "run my alerts check now" or "check alerts" use run_alerts_check (runs same logic as reactivity cron).
 
 Supported assets: ${ALLOWED_ASSETS.join(", ")} only. You may call multiple tools in one response when the user asks for several things.`,
         },
@@ -395,7 +396,7 @@ Supported assets: ${ALLOWED_ASSETS.join(", ")} only. You may call multiple tools
           type: "function",
           function: {
             name: "get_current_price",
-            description: "Get the current USD price for an asset (CRE/price data). Use when the user asks 'what is the current ETH price?', 'BTC price?', 'price of LINK?'.",
+            description: "Get the current USD price for an asset. Use when the user asks 'what is the current ETH price?', 'BTC price?', 'price of LINK?'.",
             parameters: {
               type: "object",
               properties: {
@@ -424,7 +425,7 @@ Supported assets: ${ALLOWED_ASSETS.join(", ")} only. You may call multiple tools
           type: "function",
           function: {
             name: "run_alerts_check",
-            description: "Run the alerts check now (same logic as the CRE cron). Use when the user says 'run my alerts check now', 'check alerts', 'run the check'.",
+            description: "Run the alerts check now (same logic as the reactivity cron). Use when the user says 'run my alerts check now', 'check alerts', 'run the check'.",
             parameters: { type: "object", properties: {}, required: [] },
           },
         },
@@ -512,9 +513,10 @@ Supported assets: ${ALLOWED_ASSETS.join(", ")} only. You may call multiple tools
         } else errors.push(`Unknown asset for price: ${asset}`);
       } else if (name === "run_alerts_check") {
         runCheckResult = await scheduledAgent.runAlertsCheckNow();
-        if (process.env.CRE_RUN_CHECK_URL) {
+        const reactivityBase = process.env.REACTIVITY_RUN_CHECK_URL?.replace(/\/run-check\/?$/, "").replace(/\/$/, "");
+        if (reactivityBase) {
           try {
-            await fetch(process.env.CRE_RUN_CHECK_URL, { method: "POST", signal: AbortSignal.timeout(30_000) });
+            await fetch(`${reactivityBase}/run-check`, { method: "POST", signal: AbortSignal.timeout(30_000) });
           } catch (_e) {}
         }
         console.log(`  [RUN_CHECK] ${runCheckResult.triggered.length} would trigger, ${runCheckResult.alertsCount} total alerts`);
@@ -614,18 +616,17 @@ Supported assets: ${ALLOWED_ASSETS.join(", ")} only. You may call multiple tools
  * 1. Client sends request → Server responds with 402 if no payment
  * 2. Client retries with x-payment header → Server validates payment
  * 3. Server creates alert and responds with 200 + settlement details
- * 4. Calls the HTTP Trigger of the CRE Workflow
- *    - Automated calls to the CRE Workflow require a deployed workflow, and is not implemented in this demo.
+ * 4. Optionally POSTs to reactivity service /write-alert to persist rule on-chain (if REACTIVITY_RUN_CHECK_URL set).
  *    - This demo assumes you will be using local simulation.
  *
  * @route POST /alerts
- * @requires x402 payment ($0.01 USD in USDC on base-sepolia)
+ * @requires x402 payment ($0.01 USD in STT on Somnia testnet)
  * @body {string} asset - Cryptocurrency symbol (BTC, ETH, LINK)
  * @body {string} condition - Price condition (gt, lt, gte, lte)
  * @body {number} targetPriceUsd - Target price in USD
  * @returns {Object} Created alert with ID and metadata
  */
-app.post("/alerts", (req, res) => {
+app.post("/alerts", async (req, res) => {
   console.log("\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
   console.log("POST /alerts");
 
@@ -695,17 +696,6 @@ app.post("/alerts", (req, res) => {
 
   console.log(`  [2] Alert created: ${alert.id} (${alert.asset} ${alert.condition} $${alert.targetPriceUsd})`);
 
-  /**
-   * Step 4: Prepare CRE workflow payload
-   *
-   * This payload is intended to be sent to the Chainlink CRE HTTP trigger
-   * to write the alert on-chain to the RuleRegistry contract.
-   *
-   * For demo purposes, the payload is logged to console for manual execution
-   * via the CRE CLI. In production, this would be sent automatically.
-   *
-   * @see https://docs.chain.link/cre/guides/workflow/using-triggers/http-trigger/
-   */
   const workflowPayload = {
     id: alert.id,
     asset: alert.asset,
@@ -713,29 +703,33 @@ app.post("/alerts", (req, res) => {
     targetPriceUsd: alert.targetPriceUsd,
     createdAt: alert.createdAt,
   };
-
-  console.log("  [3] CRE payload ready (copy for HTTP trigger):\n");
+  console.log("  [3] Reactivity payload (for POST /write-alert or emitter.requestRule):\n");
   console.log(JSON.stringify(workflowPayload));
   console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n");
 
-  res.status(201).json({ alert });
+  const reactivityBase = process.env.REACTIVITY_RUN_CHECK_URL?.replace(/\/run-check\/?$/, "").replace(/\/$/, "");
+  if (reactivityBase) {
+    const writeUrl = `${reactivityBase}/write-alert`;
+    try {
+      await fetch(writeUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(workflowPayload),
+        signal: AbortSignal.timeout(15_000),
+      });
+    } catch (_e) {}
+  }
 
-  // Call the HTTP Trigger of the CRE Workflow
-  // TODO(dev): Implement HTTP Trigger Call (for deployed workflows only)
-  //          See: https://docs.chain.link/cre/guides/workflow/using-triggers/http-trigger/overview-ts
-  // This demo assumes you will be using local simulation.
-  // Copy the workflowPayload JSON output and paste it into the HTTP Trigger during CRE CLI Simulation.
-  // See README for simulation steps.
-  
+  res.status(201).json({ alert });
 });
 
-// Base Sepolia USDC (for 402 payment requirement)
-const BASE_SEPOLIA_USDC = "0x036CbD53842c5426634e7929541eC2318f3dCF7e";
+// Somnia testnet STT token (for 402 payment requirement); set STT_TOKEN_ADDRESS in .env
+const SOMNIA_STT_TOKEN = process.env.STT_TOKEN_ADDRESS ?? process.env.SOMNIA_STT_TOKEN_ADDRESS ?? "";
 
 /**
  * POST /agent/action
  * Agent-facing "blockchain lite" API: one REST entry point for intents.
- * Agent sends { intent, params }; server handles chain, CRE, and x402.
+ * Agent sends { intent, params }; server handles chain, reactivity, and x402.
  * For paid intents (create_alert), server returns 402 with payment endpoint; agent pays then calls that endpoint.
  */
 app.post("/agent/action", async (req, res) => {
@@ -769,9 +763,9 @@ app.post("/agent/action", async (req, res) => {
             mimeType: "",
             payTo: payToAddress,
             maxTimeoutSeconds: 60,
-            asset: BASE_SEPOLIA_USDC,
+            asset: SOMNIA_STT_TOKEN,
             outputSchema: { input: { type: "http", method: "POST", discoverable: true } },
-            extra: { name: "USDC", version: "2" },
+            extra: { name: "STT", version: "2" },
           }],
           agentAction: { intent: "create_alert", forwardTo: "POST /alerts", forwardParams: { asset, condition, targetPriceUsd: target } },
         });
@@ -829,13 +823,11 @@ app.post("/agent/action", async (req, res) => {
 
     case "run_alerts_check": {
       const result = await scheduledAgent.runAlertsCheckNow();
-      const creUrl = process.env.CRE_RUN_CHECK_URL;
-      if (creUrl) {
+      const base = process.env.REACTIVITY_RUN_CHECK_URL?.replace(/\/run-check\/?$/, "").replace(/\/$/, "");
+      if (base) {
         try {
-          await fetch(creUrl, { method: "POST", signal: AbortSignal.timeout(30_000) });
-        } catch (e) {
-          // optional: log CRE trigger failure
-        }
+          await fetch(`${base}/run-check`, { method: "POST", signal: AbortSignal.timeout(30_000) });
+        } catch (e) {}
       }
       return res.json({ intent: "run_alerts_check", ...result });
     }
@@ -856,17 +848,15 @@ app.get("/agent/summary", (_req, res) => {
 
 /**
  * POST /agent/run-alerts-check
- * Run the same "alerts check" logic the CRE cron uses: which alerts would trigger now. Optionally triggers CRE workflow if CRE_RUN_CHECK_URL is set.
+ * Run the same "alerts check" logic the reactivity cron uses. Optionally triggers reactivity service if REACTIVITY_RUN_CHECK_URL is set (POST to /run-check).
  */
 app.post("/agent/run-alerts-check", async (_req, res) => {
   const result = await scheduledAgent.runAlertsCheckNow();
-  const creUrl = process.env.CRE_RUN_CHECK_URL;
-  if (creUrl) {
+  const base = process.env.REACTIVITY_RUN_CHECK_URL?.replace(/\/run-check\/?$/, "").replace(/\/$/, "");
+  if (base) {
     try {
-      await fetch(creUrl, { method: "POST", signal: AbortSignal.timeout(30_000) });
-    } catch (e) {
-      // optional
-    }
+      await fetch(`${base}/run-check`, { method: "POST", signal: AbortSignal.timeout(30_000) });
+    } catch (e) {}
   }
   return res.json(result);
 });
@@ -941,14 +931,14 @@ app.listen(PORT, async () => {
   console.log("\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
   console.log("Boscopan — Server ready");
   console.log(`   http://localhost:${PORT}`);
-  console.log("   POST /agent/action (agent API: intent + params; chain/CRE/x402 handled by server)");
+  console.log("   POST /agent/action (agent API: intent + params; chain/reactivity/x402 handled by server)");
   console.log("   POST /chat        (natural language; list, cancel, create one or more alerts)");
   console.log("   GET  /alerts      (list alerts by payer, no payment)");
   console.log("   GET  /prices      (current BTC/ETH/LINK USD price, no payment)");
-  console.log("   POST /alerts      (create alert, $0.01 USDC)");
+  console.log("   POST /alerts      (create alert, $0.01 STT)");
   console.log("   POST /alerts/cancel (soft-cancel by id or index, no payment)");
   console.log("   GET  /agent/summary (last scheduled agent summary)");
-  console.log("   POST /agent/run-alerts-check (run alerts check now; optional CRE_RUN_CHECK_URL)");
+  console.log("   POST /agent/run-alerts-check (run alerts check now; optional REACTIVITY_RUN_CHECK_URL)");
   console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n");
 
   await checkFacilitatorReachable();

@@ -2,24 +2,29 @@
   "name": "boscopan",
   "version": "1.0.0",
   "private": true,
-  "description": "Boscopan: crypto price alert system using x402 payments, Chainlink CRE, and on-chain smart contracts",
+  "description": "Boscopan: crypto price alert system using x402 payments, Somnia reactivity, and on-chain smart contracts",
   "workspaces": [
     "server",
-    "cre/alerts"
+    "cre/alerts",
+    "reactivity"
   ],
   "scripts": {
     "install:all": "npm install",
     "dev:server": "npm run dev --workspace=server -- --chat",
+    "dev:reactivity": "npm run dev --workspace=reactivity",
     "dev:cre": "npm run dev --workspace=cre/alerts",
     "build:server": "npm run build --workspace=server",
+    "build:reactivity": "npm run build --workspace=reactivity",
     "build:cre": "npm run build --workspace=cre/alerts",
-    "build": "npm run build:server && npm run build:cre",
+    "build": "npm run build:server && npm run build:reactivity",
     "compile": "hardhat compile",
-    "deploy:rule-registry": "hardhat run scripts/deploy-RuleRegistry.ts --network base-sepolia"
+    "deploy:rule-registry": "hardhat run scripts/deploy-RuleRegistry.ts --network somniaTestnet",
+    "deploy:reactivity": "hardhat run scripts/deploy-reactivity.ts --network somniaTestnet"
   },
   "devDependencies": {
     "@nomicfoundation/hardhat-ethers": "^3.0.0",
     "@openzeppelin/contracts": "^5.0.2",
+    "@somnia-chain/reactivity-contracts": "^0.1.6",
     "dotenv": "^16.4.5",
     "ethers": "^6.4.0",
     "hardhat": "^2.22.0",

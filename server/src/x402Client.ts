@@ -39,7 +39,7 @@ import { settleResponseFromHeader } from "x402/types";
  * Private key for the agent wallet (used for x402 payments)
  * 
  * This wallet is used to sign payment authorizations for the x402 protocol.
- * The wallet must have USDC on Base Sepolia testnet to make payments.
+ * The wallet must have STT on Somnia testnet to make payments.
  * 
  * Security Note: In production, this should be stored securely (e.g., in a
  * hardware wallet or secure key management service), not in environment variables.
@@ -84,7 +84,7 @@ const fetchWithPayment = wrapFetchWithPayment(fetch, account);
  * Alerts API endpoint URL
  * 
  * Points to the unified server's /alerts endpoint.
- * This endpoint requires x402 payment ($0.01 USDC) to create an alert.
+ * This endpoint requires x402 payment ($0.01 STT) to create an alert.
  * 
  * Uses the PORT environment variable (defaults to 3000) to construct the URL.
  * This allows the server to run on any port while the client automatically
@@ -219,7 +219,7 @@ export async function createPaidPriceAlert(payload: PriceAlertPayload): Promise<
    */
   if (res.status === 200) {
     console.log("    Step 2: Client processed 402 challenge, created payment authorization");
-    console.log("    Step 3: Client → Server: Retry with payment ($0.01 USDC)");
+    console.log("    Step 3: Client → Server: Retry with payment ($0.01 STT)");
     if (settlement?.transaction) {
       console.log(`    Step 4: Payment settled on-chain: ${settlement.transaction}`);
     }

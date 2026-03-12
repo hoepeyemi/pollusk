@@ -1,33 +1,21 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import { ReceiverTemplate } from "./interfaces/ReceiverTemplate.sol";
+import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 import { IERC20 } from "./interfaces/IERC20.sol";
 
 /**
  * @title RuleRegistry
- * @author x402-cre-alerts
  * @notice On-chain registry for storing crypto price alert rules
- * 
- * @dev This contract serves as both:
- * 1. A Chainlink CRE (Chainlink Runtime Environment) receiver that accepts reports
- *    from CRE workflows containing price alert rules
- * 2. An x402 payment receiver that can accept USDC payments and allow owner withdrawals
- * 
- * Architecture:
- * - Rules are written to the contract via CRE workflow reports
- * - Rules are stored in a mapping with incremental IDs for efficient iteration
- * - The contract can receive USDC payments (from x402 protocol)
- * - Only the owner can withdraw accumulated USDC
- * 
- * Flow:
- * 1. CRE workflow receives alert data from server
- * 2. CRE workflow encodes alert data and sends report to this contract
- * 3. Contract decodes report and stores rule in mapping
- * 4. CRE cron job monitors prices and checks rules against current prices
- * 5. When conditions are met, notifications are sent via Pushover API
+ *
+ * @dev Rules are written via Somnia reactivity: a trusted RuleRegistryReactivityHandler
+ *      subscribes to events (e.g. RuleRequestEmitter.RuleRequested); when the chain invokes
+ *      the handler, it calls writeRuleFromReactivity(data). Owner sets the handler via setReactivityHandler.
+ *      Off-chain services (Somnia Reactivity SDK) can run cron subscriptions and filtered/wildcard
+ *      subscriptions for price checks and notifications.
+ * @dev This contract also acts as an x402 payment receiver (STT); owner can withdraw.
  */
-contract RuleRegistry is ReceiverTemplate {
+contract RuleRegistry is Ownable {
     // ============================================================================
     // Types & Data Structures
     // ============================================================================
@@ -54,11 +42,17 @@ contract RuleRegistry is ReceiverTemplate {
     // ============================================================================
 
     /**
-     * @notice USDC token contract address
+     * @notice STT token contract address
      * @dev Set in constructor, used for receiving x402 payments
-     * @dev USDC typically has 6 decimals
+     * @dev STT typically has 6 decimals
      */
     address public usdcToken;
+
+    /**
+     * @notice Trusted Somnia reactivity handler allowed to call writeRuleFromReactivity
+     * @dev When set, only this address can submit rules via on-chain event reactivity
+     */
+    address public reactivityHandler;
 
     /**
      * @notice Next available rule ID
@@ -97,16 +91,26 @@ contract RuleRegistry is ReceiverTemplate {
     );
 
     /**
-     * @notice Emitted when USDC is withdrawn from the contract
-     * @param token The token address (USDC)
+     * @notice Emitted when STT is withdrawn from the contract
+     * @param token The token address (STT)
      * @param to The recipient address
-     * @param amount The amount withdrawn (in USDC's decimals, typically 6)
+     * @param amount The amount withdrawn (in STT's decimals, typically 6)
      */
     event Withdrawal(address indexed token, address indexed to, uint256 amount);
+
+    /**
+     * @notice Emitted when the Somnia reactivity handler is set or updated
+     */
+    event ReactivityHandlerUpdated(address indexed previousHandler, address indexed newHandler);
 
     // ============================================================================
     // Modifiers
     // ============================================================================
+
+    modifier onlyReactivityHandler() {
+        require(msg.sender == reactivityHandler, "RuleRegistry: caller is not the reactivity handler");
+        _;
+    }
 
     // ============================================================================
     // Constructor
@@ -114,16 +118,10 @@ contract RuleRegistry is ReceiverTemplate {
 
     /**
      * @notice Initializes the RuleRegistry contract
-     * @dev Sets the owner to the deployer and configures USDC token address and Chainlink Forwarder
-     * @param _usdcToken Address of the USDC token contract (for x402 payments)
-     * @param _forwarderAddress Address of the Chainlink Forwarder contract (required for CRE report validation)
-     * 
-     * @custom:note The forwarder address is required for security - it ensures only verified CRE reports
-     *             are processed. Find the correct forwarder address for your network in the CRE documentation.
+     * @param _usdcToken Address of the STT token contract (for x402 payments)
      */
-    constructor(address _usdcToken, address _forwarderAddress) ReceiverTemplate(_forwarderAddress) {
-        require(_usdcToken != address(0), "RuleRegistry: USDC token address cannot be zero");
-        require(_forwarderAddress != address(0), "RuleRegistry: Forwarder address cannot be zero");
+    constructor(address _usdcToken) Ownable(msg.sender) {
+        require(_usdcToken != address(0), "RuleRegistry: STT token address cannot be zero");
         usdcToken = _usdcToken;
     }
 
@@ -133,8 +131,7 @@ contract RuleRegistry is ReceiverTemplate {
 
     /**
      * @notice Writes a new rule to the registry
-     * @dev Internal function called by _processReport when receiving CRE reports
-     * @dev Assigns incremental rule ID and emits RuleCreated event
+     * @dev Internal; called by writeRuleFromReactivity (Somnia reactivity handler)
      * @param _id Deterministic rule ID (bytes32 hash of alert data)
      * @param _asset Cryptocurrency asset symbol
      * @param _condition Price condition string ("gt", "lt", "gte", "lte")
@@ -142,13 +139,13 @@ contract RuleRegistry is ReceiverTemplate {
      * @param _createdAt UNIX timestamp when rule was created
      * @return ruleId The incremental rule ID assigned to this rule
      */
-    function writeRule(
+    function _writeRule(
         bytes32 _id,
         string memory _asset,
         string memory _condition,
         uint256 _targetPriceUsd,
         uint256 _createdAt
-    ) private returns (uint256) {
+    ) internal returns (uint256) {
         // Assign next available rule ID
         uint256 ruleId = nextRuleId;
         nextRuleId++;
@@ -169,34 +166,30 @@ contract RuleRegistry is ReceiverTemplate {
     }
 
     // ============================================================================
-    // CRE Workflow Integration (IReceiverTemplate Implementation)
+    // Somnia Reactivity Integration
     // ============================================================================
 
     /**
-     * @notice Processes a report received from a Chainlink CRE workflow
-     * @dev Internal function called by onReport after metadata validation
-     * @dev Decodes the report bytes into rule parameters and writes to registry
-     * @param report The encoded report data containing rule parameters
-     * 
-     * @custom:note Report format (ABI-encoded):
-     *             - bytes32 id
-     *             - string asset
-     *             - string condition
-     *             - uint256 targetPriceUsd
-     *             - uint256 createdAt
-     * 
-     * @custom:note This function is called by the CRE workflow when it needs to
-     *             write a new price alert rule on-chain. The CRE workflow receives
-     *             alert data from the server and encodes it into this report format.
+     * @notice Set the trusted Somnia reactivity handler that can write rules via writeRuleFromReactivity
+     * @dev Only callable by owner. Use address(0) to disable reactivity-based rule writes.
+     * @param _handler Address of the deployed RuleRegistryReactivityHandler (or 0 to disable)
      */
-    function _processReport(bytes calldata report) internal override {
-        // Decode report data into rule parameters
-        // The report is ABI-encoded with: (bytes32, string, string, uint256, uint256)
-        (bytes32 id, string memory asset, string memory condition, uint256 targetPriceUsd, uint256 createdAt) =
-            abi.decode(report, (bytes32, string, string, uint256, uint256));
+    function setReactivityHandler(address _handler) external onlyOwner {
+        address previous = reactivityHandler;
+        reactivityHandler = _handler;
+        emit ReactivityHandlerUpdated(previous, _handler);
+    }
 
-        // Write rule to registry
-        writeRule(id, asset, condition, targetPriceUsd, createdAt);
+    /**
+     * @notice Write a rule from Somnia on-chain reactivity (event-driven)
+     * @dev Only the address set as reactivityHandler can call this. Decodes ABI-encoded
+     *      (bytes32 id, string asset, string condition, uint256 targetPriceUsd, uint256 createdAt).
+     * @param data ABI-encoded rule params; same format as CRE report payload
+     */
+    function writeRuleFromReactivity(bytes calldata data) external onlyReactivityHandler {
+        (bytes32 id, string memory asset, string memory condition, uint256 targetPriceUsd, uint256 createdAt) =
+            abi.decode(data, (bytes32, string, string, uint256, uint256));
+        _writeRule(id, asset, condition, targetPriceUsd, createdAt);
     }
 
     // ============================================================================
@@ -251,29 +244,29 @@ contract RuleRegistry is ReceiverTemplate {
     // ============================================================================
 
     /**
-     * @notice Gets the USDC balance of this contract
-     * @dev This contract can receive USDC payments via x402 protocol
+     * @notice Gets the STT balance of this contract
+     * @dev This contract can receive STT payments via x402 protocol
      * @dev The balance accumulates as users pay for creating alerts
-     * @return The USDC balance of the contract (in USDC's decimals, typically 6)
+     * @return The STT balance of the contract (in STT's decimals, typically 6)
      * 
-     * @custom:note USDC has 6 decimals, so a return value of 1000000 represents 1 USDC
+     * @custom:note STT has 6 decimals, so a return value of 1000000 represents 1 STT
      * 
      * @custom:reverts If usdcToken address is not set (should never happen after deployment)
      */
     function getUSDCBalance() external view returns (uint256) {
-        require(usdcToken != address(0), "RuleRegistry: USDC token address not set");
+        require(usdcToken != address(0), "RuleRegistry: STT token address not set");
         IERC20 usdc = IERC20(usdcToken);
         return usdc.balanceOf(address(this));
     }
 
     /**
-     * @notice Withdraws USDC tokens from the contract
-     * @dev Only the contract owner can withdraw accumulated USDC payments
+     * @notice Withdraws STT tokens from the contract
+     * @dev Only the contract owner can withdraw accumulated STT payments
      * @dev This allows the owner to collect payments received via x402 protocol
-     * @param to The address to send the USDC to
-     * @param amount The amount of USDC to withdraw (in USDC's decimals, typically 6)
+     * @param to The address to send the STT to
+     * @param amount The amount of STT to withdraw (in STT's decimals, typically 6)
      * 
-     * @custom:note USDC has 6 decimals, so to withdraw 1 USDC, pass 1000000
+     * @custom:note STT has 6 decimals, so to withdraw 1 STT, pass 1000000
      * 
      * @custom:reverts If:
      *             - Caller is not the owner
@@ -281,21 +274,21 @@ contract RuleRegistry is ReceiverTemplate {
      *             - to address is zero
      *             - amount is zero
      *             - Contract balance is insufficient
-     *             - USDC transfer fails
+     *             - STT transfer fails
      * 
      * @custom:emits Withdrawal event on successful withdrawal
      */
     function withdrawUSDC(address to, uint256 amount) external onlyOwner {
-        require(usdcToken != address(0), "RuleRegistry: USDC token address not set");
+        require(usdcToken != address(0), "RuleRegistry: STT token address not set");
         require(to != address(0), "RuleRegistry: invalid recipient address");
         require(amount > 0, "RuleRegistry: amount must be greater than zero");
 
         IERC20 usdc = IERC20(usdcToken);
         uint256 balance = usdc.balanceOf(address(this));
-        require(balance >= amount, "RuleRegistry: insufficient USDC balance");
+        require(balance >= amount, "RuleRegistry: insufficient STT balance");
 
-        // Transfer USDC to recipient
-        require(usdc.transfer(to, amount), "RuleRegistry: USDC transfer failed");
+        // Transfer STT to recipient
+        require(usdc.transfer(to, amount), "RuleRegistry: STT transfer failed");
         
         // Emit event for off-chain monitoring
         emit Withdrawal(usdcToken, to, amount);

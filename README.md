@@ -1,6 +1,6 @@
 # Boscopan
 
-**Autonomous AI agents + on-chain price alerts.** Natural language, x402 micropayments, Chainlink CRE, and Base Sepolia
+**Autonomous AI agents + on-chain price alerts.** Natural language, x402 micropayments, Somnia reactivity, and Somnia testnet
 
 ---
 
@@ -11,8 +11,8 @@ Boscopan fits **agentic automation + onchain** and **AI × Web3** tracks:
 - **AI agent as the interface** — Users (or other agents) talk in plain language: *"Alert me when ETH > 4000"*, *"List my alerts"*, *"Run my alerts check now"*. No RPC, ABI, or wallet UX in the conversation.
 - **Agent-initiated CRE execution** — A scheduled job reasons over alerts + prices with an LLM and stores a summary. You can also trigger the same “alerts check” on demand from chat or via `POST /agent/run-alerts-check`, optionally calling your deployed CRE workflow (prices + RuleRegistry + Pushover).
 - **Single agent API** — One `POST /agent/action` with `intent` + `params`. The server handles chain, CRE, and x402. For paid actions (e.g. create alert), the server returns 402; the agent pays then retries. Perfect for AI agents that need a “blockchain lite” API.
-- **x402 micropayments** — Create-alert is gated by $0.01 USDC (Base Sepolia). Demonstrates payment-protected APIs and agentic payments.
-- **On-chain + CRE** — Alerts are written to a RuleRegistry contract via Chainlink CRE; cron (and optional run-check HTTP trigger) use CRE to read rules, pull Chainlink prices, and send Pushover notifications.
+- **x402 micropayments** — Create-alert is gated by $0.01 STT (Somnia testnet). Demonstrates payment-protected APIs and agentic payments.
+- **On-chain + Somnia reactivity** — Rules are written to RuleRegistry via Somnia on-chain reactivity (RuleRequestEmitter → handler → writeRuleFromReactivity). The reactivity service provides off-chain subscriptions (filtered + wildcard), cron, and HTTP /run-check and /write-alert.
 
 ---
 
@@ -24,24 +24,22 @@ Boscopan fits **agentic automation + onchain** and **AI × Web3** tracks:
 | **Agent API** | `POST /agent/action` with intents: `create_alert`, `list_alerts`, `get_price`, `cancel_alert`, `run_alerts_check`. 402 for paid intents with `agentAction.forwardTo`; optional `X-Agent-Wallet` for list/cancel. [OpenAPI](docs/agent-api.openapi.yaml) \| [Tool schema](docs/agent-tools.schema.json). |
 | **Scheduled agent** | Optional periodic job (`SCHEDULED_AGENT_INTERVAL_MS`): reads all alerts + current prices, calls LLM for a short summary/suggestion, stores last result. `GET /agent/summary` returns last summary and timestamp. |
 | **Run alerts check** | Server-side “which alerts would trigger now?” plus optional CRE run: `POST /agent/run-alerts-check` or intent `run_alerts_check` (and from chat). If `CRE_RUN_CHECK_URL` is set, server also POSTs to that URL to trigger full CRE (Chainlink prices + RuleRegistry + Pushover). |
-| **x402** | Create-alert protected by x402 ($0.01 USDC). 402 challenge → agent pays → server validates and creates alert. |
+| **x402** | Create-alert protected by x402 ($0.01 STT). 402 challenge → agent pays → server validates and creates alert. |
 | **CRE workflow** | HTTP trigger (write alert to RuleRegistry), Cron trigger (prices + conditions + Pushover), **Run-check HTTP trigger** (same logic as cron, for on-demand runs). |
 | **Backend state** | In-memory alert store by payer; cancel by `alertId` or 1-based index. Price service (e.g. CoinGecko, cached). |
 | **Contract & deploy** | `RuleRegistry.sol` on Base Sepolia; Hardhat deploy script: `npm run deploy:rule-registry`. |
 
 ---
 
-## Chainlink usage
-
-Where Chainlink appears in this repo (links relative to repo root):
+## Somnia reactivity usage
 
 | What | Code |
 |------|------|
-| **CRE workflow** (HTTP + Cron + run-check triggers) | [cre/alerts/main.ts](cre/alerts/main.ts) |
-| **Write alert on-chain** (CRE report → RuleRegistry) | [cre/alerts/httpCallback.ts](cre/alerts/httpCallback.ts) |
-| **Price feeds + conditions + Pushover** (Cron) | [cre/alerts/cronCallback.ts](cre/alerts/cronCallback.ts) — reads rules, fetches Chainlink Price Feeds (BTC/ETH/LINK), checks conditions |
-| **Run-check HTTP trigger** (on-demand same as cron) | [cre/alerts/runCheckCallback.ts](cre/alerts/runCheckCallback.ts) |
-| **On-chain receiver** (CRE reports, Forwarder) | [contracts/RuleRegistry.sol](contracts/RuleRegistry.sol) |
+| **Reactivity service** (cron, /run-check, /write-alert, subscriptions) | [reactivity/src/main.ts](reactivity/src/main.ts) |
+| **Run-check** (read RuleRegistry, prices, Pushover) | [reactivity/src/runCheck.ts](reactivity/src/runCheck.ts) |
+| **Off-chain subscriptions** (filtered + wildcard) | [reactivity/src/subscriptions.ts](reactivity/src/subscriptions.ts) |
+| **Write rule on-chain** (RuleRequestEmitter.requestRule) | [reactivity/src/writeOnChain.ts](reactivity/src/writeOnChain.ts) |
+| **RuleRegistry** (Somnia reactivity only; no CRE) | [contracts/RuleRegistry.sol](contracts/RuleRegistry.sol) |
 
 ---
 
@@ -52,27 +50,27 @@ flowchart LR
     User[User / Agent] -->|Chat or POST /agent/action| Server[Boscopan Server]
     Server -->|x402| Payments[x402]
     Server -->|Intent: create_alert| Alerts[Alert Store]
-    Server -->|Prices| PriceService[Price API]
-    Server -->|Optional| CRE_RUN[CRE Run-Check URL]
-    CRE_HTTP[CRE HTTP Trigger] -->|Write rules| Contract[RuleRegistry]
-    CRE_Cron[CRE Cron] -->|Read rules + prices| Contract
-    CRE_Cron -->|Notify| Pushover[Pushover]
-    CRE_RUN -.->|Same as cron| CRE_Cron
+    Server -->|Optional| Reactivity[Reactivity Service]
+    Reactivity -->|/write-alert| Emitter[RuleRequestEmitter]
+    Emitter -->|event| Handler[Reactivity Handler]
+    Handler -->|writeRuleFromReactivity| Contract[RuleRegistry]
+    Reactivity -->|cron /run-check| Contract
+    Reactivity -->|Notify| Pushover[Pushover]
 ```
 
 - **User/Agent** → Boscopan server (chat or agent API).
-- **Server** → x402 for create-alert; alert store + price service for state; optional call to CRE run-check URL.
-- **CRE** → HTTP trigger writes to RuleRegistry; Cron (and run-check trigger) read rules, get prices, send Pushover.
+- **Server** → x402 for create-alert; optional POST to reactivity `/write-alert` and `/run-check`.
+- **Reactivity** → Cron + HTTP /run-check (read RuleRegistry, prices, Pushover); /write-alert → RuleRequestEmitter → on-chain handler → RuleRegistry.
 
 ---
 
 ## Quick start
 
 1. **Env**  
-   Copy `.env.example` to `.env`. Set at least: `OPENAI_API_KEY`, `X402_RECEIVER_ADDRESS`, `AGENT_WALLET_PRIVATE_KEY`, CRE keys, Pushover keys. Optional: `SCHEDULED_AGENT_INTERVAL_MS`, `CRE_RUN_CHECK_URL`.
+   Copy `.env.example` to `.env`. Set at least: `OPENAI_API_KEY`, `X402_RECEIVER_ADDRESS`, `AGENT_WALLET_PRIVATE_KEY`. Optional: `SCHEDULED_AGENT_INTERVAL_MS`, `REACTIVITY_RUN_CHECK_URL`, Pushover for reactivity.
 
 2. **Contract**  
-   Deploy RuleRegistry (see [Deploy RuleRegistry](#0-deploy-rulegistry-on-base-sepolia)) and set `X402_RECEIVER_ADDRESS` (and in CRE config).
+   Deploy RuleRegistry (see [Deploy RuleRegistry](#0-deploy-rulegistry-on-somnia-testnet)) then deploy reactivity; set `X402_RECEIVER_ADDRESS` and `RULE_REQUEST_EMITTER_ADDRESS`.
 
 3. **Run server (with chat)**  
    `npm run dev:server` → Boscopan at `http://localhost:3000` with interactive chat.
@@ -89,25 +87,26 @@ flowchart LR
 
 ### Prerequisites
 
-- **Node.js** v18+, **Bun** (for CRE postinstall), **Chainlink CRE CLI**, **Git**
+- **Node.js** v18+, **Git**
 - **OpenAI API key** (used instead of Gemini)
 - **Pushover** account + app (user key + API token) for notifications
-- **Wallet** with ETH and USDC on Base Sepolia (for deploy and x402)
+- **Wallet** with STT on Somnia testnet (for deploy and x402)
 
-### 0. Deploy RuleRegistry on Base Sepolia
+### 0. Deploy RuleRegistry on Somnia testnet
 
-Deploy `contracts/RuleRegistry.sol`. Constructor: USDC address `0x036CbD53842c5426634e7929541eC2318f3dCF7e`, Forwarder `0x82300bd7c3958625581cc2f77bc6464dcecdf3e5` ([Base Sepolia CRE](https://docs.chain.link/cre/guides/workflow/using-evm-client/supported-networks-ts#understanding-forwarder-addresses)).
+Deploy `contracts/RuleRegistry.sol`. Constructor: STT token address only (set `STT_TOKEN_ADDRESS` in `.env`). RPC: `https://dream-rpc.somnia.network/`, chain ID: 50312.
 
 **Using Hardhat (recommended):**
 
 ```bash
 npm run compile
 npm run deploy:rule-registry
+npm run deploy:reactivity
 ```
 
-Set `X402_RECEIVER_ADDRESS` (and CRE config `ruleRegistryAddress`) to the deployed contract.
+Set `X402_RECEIVER_ADDRESS` to the deployed RuleRegistry. Then run `deploy:reactivity` to deploy RuleRegistryReactivityHandler and RuleRequestEmitter and set the handler on RuleRegistry. Set `RULE_REQUEST_EMITTER_ADDRESS` in `.env` for the reactivity service.
 
-Alternatively use [Remix](https://remix.ethereum.org/) and the same constructor args.
+Alternatively use [Remix](https://remix.ethereum.org/) with constructor `(STT_TOKEN_ADDRESS)`.
 
 ### 1. Clone and install
 
@@ -126,12 +125,13 @@ cp .env.example .env
 Edit `.env`:
 
 - **Server:** `PORT`, `X402_RECEIVER_ADDRESS`, `X402_FACILITATOR_URL`, `OPENAI_API_KEY`, `AGENT_WALLET_PRIVATE_KEY`
-- **Optional:** `SCHEDULED_AGENT_INTERVAL_MS` (e.g. `900000` for 15 min), `CRE_RUN_CHECK_URL`
-- **CRE:** `CRE_ETH_PRIVATE_KEY`, `CRE_TARGET`, `PUSHOVER_USER_KEY_VAR`, `PUSHOVER_API_KEY_VAR`
+- **Optional:** `SCHEDULED_AGENT_INTERVAL_MS` (e.g. `900000` for 15 min), `REACTIVITY_RUN_CHECK_URL`
+- **Reactivity:** `RULE_REGISTRY_ADDRESS` or `X402_RECEIVER_ADDRESS`, `PUSHOVER_USER_KEY_VAR`, `PUSHOVER_API_KEY_VAR`; optional `RULE_REQUEST_EMITTER_ADDRESS`, `REACTIVITY_WRITER_PRIVATE_KEY`
+- **Somnia deploy:** `RPC_URL`, `STT_TOKEN_ADDRESS`
 
-### 3. Configure CRE workflow
+### 3. Configure reactivity service
 
-Edit `cre/alerts/config.staging.json`: set `ruleRegistryAddress`, keep or adjust `schedule`, `dataFeeds` (BTC/ETH/LINK price feeds on Base Sepolia). See [Chainlink Price Feeds](https://docs.chain.link/data-feeds/price-feeds/addresses?page=1&testnetPage=1&network=base&networkType=testnet&testnetSearch=).
+For the reactivity service: set `RULE_REGISTRY_ADDRESS` (or `X402_RECEIVER_ADDRESS`), `RULE_REQUEST_EMITTER_ADDRESS` (from deploy:reactivity), and Pushover keys. Prices use CoinGecko (no chain-specific feeds).
 
 ---
 
@@ -153,7 +153,7 @@ In chat:
 > Create an alert when BTC is greater than 60000
 ```
 
-Server uses OpenAI to extract params, then creates a paid alert via x402 and returns alert details + CRE payload.
+Server uses OpenAI to extract params, then creates a paid alert via x402 and returns alert details; optional POST to reactivity `/write-alert` to persist on-chain.
 
 ### List / cancel / price / run check (chat)
 
@@ -196,24 +196,13 @@ curl -X POST http://localhost:3000/alerts \
 
 First call returns `402` with payment challenge; client pays then retries with `x-payment` header (e.g. using `x402-fetch` or equivalent).
 
-### CRE: write alert on-chain and run cron
+### Reactivity: write alert on-chain and run cron
 
-1. From server output after creating an alert, copy the CRE payload JSON.
-2. Simulate HTTP trigger (write to RuleRegistry):
+1. Start the reactivity service: `npm run dev:reactivity` (uses `RULE_REGISTRY_ADDRESS`, `RULE_REQUEST_EMITTER_ADDRESS`, Pushover keys).
+2. When you create an alert (after x402), the server can POST the payload to `{REACTIVITY_RUN_CHECK_URL}/write-alert` to write the rule on-chain via RuleRequestEmitter (if `REACTIVITY_RUN_CHECK_URL` and writer key are set).
+3. Cron runs periodically (configurable via `REACTIVITY_CRON_INTERVAL_MS`); or call `POST {REACTIVITY_RUN_CHECK_URL}/run-check` for on-demand run.
 
-   ```bash
-   cd cre && cre workflow simulate alerts --env ../.env --broadcast
-   ```
-   Choose HTTP trigger and paste the payload.
-
-3. Simulate Cron (prices + notifications):
-
-   ```bash
-   cre workflow simulate alerts --env ../.env
-   ```
-   Choose Cron trigger.
-
-If you deployed a CRE workflow with the **run-check HTTP trigger**, set `CRE_RUN_CHECK_URL` in `.env` so `POST /agent/run-alerts-check` and the `run_alerts_check` intent also trigger the full CRE run.
+Set `REACTIVITY_RUN_CHECK_URL` in `.env` (e.g. `http://localhost:3001`) so `POST /agent/run-alerts-check` and the `run_alerts_check` intent also trigger the reactivity run-check.
 
 ---
 
@@ -224,10 +213,10 @@ If you deployed a CRE workflow with the **run-check HTTP trigger**, set `CRE_RUN
 | POST | `/chat` | Natural language; create/list/cancel alerts, get price, run alerts check. |
 | POST | `/agent/action` | Agent API: `intent` + `params`; 402 for paid intents. |
 | GET | `/agent/summary` | Last scheduled agent summary (alerts + prices, LLM). |
-| POST | `/agent/run-alerts-check` | Run alerts check now; optionally calls `CRE_RUN_CHECK_URL`. |
+| POST | `/agent/run-alerts-check` | Run alerts check now; optionally calls reactivity `/run-check` if `REACTIVITY_RUN_CHECK_URL` set. |
 | GET | `/alerts` | List alerts by `?payer=`. |
 | GET | `/prices` | Current BTC/ETH/LINK USD (optional `?asset=`). |
-| POST | `/alerts` | Create alert (x402 $0.01 USDC). |
+| POST | `/alerts` | Create alert (x402 $0.01 STT). |
 | POST | `/alerts/cancel` | Cancel by `alertId` or `alertIndex` (body: `payer`, `alertId` or `alertIndex`). |
 
 Full spec: [docs/agent-api.openapi.yaml](docs/agent-api.openapi.yaml). Tool schema for agents: [docs/agent-tools.schema.json](docs/agent-tools.schema.json).
@@ -245,10 +234,12 @@ Full spec: [docs/agent-api.openapi.yaml](docs/agent-api.openapi.yaml). Tool sche
 | `server/src/alertStore.ts` | In-memory alerts by payer; cancel by id or index. |
 | `server/src/priceService.ts` | Current prices (e.g. CoinGecko), cached. |
 | `server/src/x402Client.ts` | x402 payment client for paid alert creation. |
-| `cre/alerts/` | CRE workflow: HTTP trigger (write alert), Cron (prices + Pushover), Run-check HTTP trigger. |
-| `cre/alerts/runCheckCallback.ts` | HTTP handler that runs same logic as cron (for on-demand CRE run). |
-| `contracts/RuleRegistry.sol` | On-chain rule storage; CRE report receiver. |
-| `scripts/deploy-RuleRegistry.ts` | Hardhat deploy for RuleRegistry on Base Sepolia. |
+| `reactivity/` | Somnia reactivity service: cron, /run-check, /write-alert, off-chain subscriptions (filtered + wildcard). |
+| `contracts/RuleRegistry.sol` | On-chain rule storage; Somnia reactivity only (writeRuleFromReactivity). |
+| `contracts/RuleRegistryReactivityHandler.sol` | Somnia reactivity handler; forwards events to RuleRegistry. |
+| `contracts/RuleRequestEmitter.sol` | Emits RuleRequested for reactivity-driven rule writes. |
+| `scripts/deploy-RuleRegistry.ts` | Hardhat deploy for RuleRegistry on Somnia testnet. |
+| `scripts/deploy-reactivity.ts` | Deploy reactivity handler + emitter and set handler on RuleRegistry. |
 | `docs/agent-api.openapi.yaml` | OpenAPI for Boscopan agent API. |
 | `docs/agent-tools.schema.json` | JSON schema for agent intents/params. |
 
@@ -257,8 +248,28 @@ Full spec: [docs/agent-api.openapi.yaml](docs/agent-api.openapi.yaml). Tool sche
 ## Tech stack
 
 - **Server:** Node.js, Express, OpenAI API (e.g. gpt-4o-mini), x402-express, x402-fetch, viem.
-- **CRE:** Chainlink CRE SDK, HTTP + Cron + run-check triggers, Chainlink price feeds, Pushover.
-- **Chain:** Base Sepolia; RuleRegistry (Solidity), USDC, Hardhat deploy.
+- **Reactivity:** @somnia-chain/reactivity SDK, cron (local), /run-check, /write-alert, off-chain subscriptions; CoinGecko prices, Pushover.
+- **Chain:** Somnia testnet; RuleRegistry (Solidity), STT, Hardhat deploy.
+- **Somnia Reactivity:** Optional event-driven rule writes via RuleRegistryReactivityHandler.
+
+---
+
+## Somnia Reactivity (optional)
+
+Rules can be written on-chain via [Somnia reactivity](https://docs.somnia.network/developer/reactivity/tutorials/solidity-on-chain-reactivity-tutorial): when a subscribed event is emitted, the chain invokes the handler, which calls `RuleRegistry.writeRuleFromReactivity(data)`.
+
+1. **Deploy** (after RuleRegistry is deployed):
+   ```bash
+   # Set RULE_REGISTRY_ADDRESS or X402_RECEIVER_ADDRESS in .env
+   npm run deploy:reactivity
+   ```
+   This deploys `RuleRegistryReactivityHandler`, `RuleRequestEmitter`, and sets the handler on RuleRegistry.
+
+2. **Create a subscription** (owner must hold ≥32 SOM for gas). Use [@somnia-chain/reactivity](https://www.npmjs.com/package/@somnia-chain/reactivity) SDK or the precompile at `0x0100`:
+   - `handlerContractAddress`: deployed handler address
+   - `emitter`: deployed `RuleRequestEmitter` address (filter by `RuleRequested(bytes32,string,string,uint256,uint256)`)
+
+3. **Add rules via events**: Call `RuleRequestEmitter.requestRule(id, asset, condition, targetPriceUsd, createdAt)`; when the event fires, the handler writes the rule to RuleRegistry.
 
 ---
 
@@ -266,9 +277,9 @@ Full spec: [docs/agent-api.openapi.yaml](docs/agent-api.openapi.yaml). Tool sche
 
 - **Assets:** BTC, ETH, LINK.
 - **Conditions:** `gt`, `lt`, `gte`, `lte`.
-- **Payment:** $0.01 USDC per alert creation (x402).
-- **Storage:** In-memory alert store + on-chain RuleRegistry via CRE.
-- **Notifications:** Pushover when CRE cron (or run-check) detects condition met.
+- **Payment:** $0.01 STT per alert creation (x402).
+- **Storage:** In-memory alert store + on-chain RuleRegistry via Somnia reactivity.
+- **Notifications:** Pushover when reactivity cron (or /run-check) detects condition met.
 - **Scheduled agent:** Optional interval; `GET /agent/summary` for last LLM summary.
 
 ---
@@ -276,5 +287,5 @@ Full spec: [docs/agent-api.openapi.yaml](docs/agent-api.openapi.yaml). Tool sche
 ## Reference
 
 - **LinkLab / Book:** [smartcontractkit.github.io/x402-cre-price-alerts](https://smartcontractkit.github.io/x402-cre-price-alerts/)
-- **CRE:** [docs.chain.link/cre](https://docs.chain.link/cre)
 - **x402:** [x402.org](https://x402.org/)
+- **Somnia Reactivity:** [docs.somnia.network/developer/reactivity](https://docs.somnia.network/developer/reactivity)

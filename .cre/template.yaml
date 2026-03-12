@@ -1,19 +1,19 @@
 kind: starter-template
 id: boscopan
 title: "Boscopan (TypeScript)"
-description: "Boscopan: crypto price alert system with x402 micropayments, Chainlink CRE workflows, and AI for natural language alerts. Create alerts via chat, pay with USDC, store on-chain, get push notifications."
+description: "Boscopan: crypto price alert system with x402 micropayments, Chainlink CRE workflows, and AI for natural language alerts. Create alerts via chat, pay with STT, store on-chain, get push notifications."
 language: typescript
 category: price-alerts
-tags: [x402, chainlink-cre, gemini-ai, price-alerts, base-sepolia, evm-settlement]
+tags: [x402, chainlink-cre, gemini-ai, price-alerts, somnia-testnet, evm-settlement]
 networks:
-  - ethereum-testnet-sepolia-base-1
+  - somnia-testnet
 projectDir: cre
 workflows:
   - dir: alerts
     description: "HTTP trigger (write alerts on-chain) and Cron trigger (check prices, send Pushover notifications)"
 postInit: |
   This template requires more steps to complete setup; see README.md for full instructions.
-  1. Deploy RuleRegistry contract to Base Sepolia (see README.md Setup step 0)
+  1. Deploy RuleRegistry contract to Somnia testnet (see README.md Setup step 0)
   2. Copy .env.example to .env and populate (Gemini API key, wallet keys, Pushover, CRE_ETH_PRIVATE_KEY, etc.)
   3. Update cre/alerts/config.staging.json with your ruleRegistryAddress and chain config
   4. Start server: npm run dev:server
