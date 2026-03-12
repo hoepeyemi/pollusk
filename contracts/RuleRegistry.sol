@@ -192,6 +192,20 @@ contract RuleRegistry is Ownable {
         _writeRule(id, asset, condition, targetPriceUsd, createdAt);
     }
 
+    /**
+     * @notice Write a rule directly (owner only). Use when the on-chain reactivity subscription is not set up.
+     * @dev Same params as writeRuleFromReactivity; allows backend to persist rules for run-check/Pushover.
+     */
+    function writeRuleByOwner(
+        bytes32 _id,
+        string calldata _asset,
+        string calldata _condition,
+        uint256 _targetPriceUsd,
+        uint256 _createdAt
+    ) external onlyOwner {
+        _writeRule(_id, _asset, _condition, _targetPriceUsd, _createdAt);
+    }
+
     // ============================================================================
     // Public View Functions
     // ============================================================================

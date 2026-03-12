@@ -1,22 +1,22 @@
 /**
- * Write a rule on-chain by calling RuleRequestEmitter.requestRule().
- * The on-chain reactivity handler will then call RuleRegistry.writeRuleFromReactivity.
+ * Write a rule on-chain. Prefers RuleRegistry.writeRuleByOwner (direct) when we have the owner key;
+ * otherwise falls back to RuleRequestEmitter.requestRule() (requires on-chain subscription to be set up).
  */
-import { createWalletClient, http, encodeFunctionData } from "viem";
+import { createWalletClient, http } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import type { ReactivityConfig } from "./types.js";
 
-const emitterAbi = [
+const registryAbi = [
   {
-    name: "requestRule",
+    name: "writeRuleByOwner",
     type: "function",
     stateMutability: "nonpayable",
     inputs: [
-      { name: "id", type: "bytes32" },
-      { name: "asset", type: "string" },
-      { name: "condition", type: "string" },
-      { name: "targetPriceUsd", type: "uint256" },
-      { name: "createdAt", type: "uint256" },
+      { name: "_id", type: "bytes32" },
+      { name: "_asset", type: "string" },
+      { name: "_condition", type: "string" },
+      { name: "_targetPriceUsd", type: "uint256" },
+      { name: "_createdAt", type: "uint256" },
     ],
     outputs: [],
   },
@@ -34,10 +34,11 @@ export async function writeRuleOnChain(
   config: ReactivityConfig,
   payload: RulePayload
 ): Promise<`0x${string}` | Error> {
-  if (!config.ruleRequestEmitterAddress || !config.writerPrivateKey) {
-    return new Error("RULE_REQUEST_EMITTER_ADDRESS and REACTIVITY_WRITER_PRIVATE_KEY (or CRE_ETH_PRIVATE_KEY) required");
+  if (!config.writerPrivateKey) {
+    return new Error("REACTIVITY_WRITER_PRIVATE_KEY (or AGENT_WALLET_PRIVATE_KEY) required for /write-alert");
   }
 
+  const idBytes32 = payload.id.startsWith("0x") ? (payload.id as `0x${string}`) : (`0x${payload.id}` as `0x${string}`);
   const account = privateKeyToAccount(config.writerPrivateKey);
   const chain = { id: config.chainId, name: "Somnia Testnet", nativeCurrency: { decimals: 18, name: "STT", symbol: "STT" }, rpcUrls: { default: { http: [config.rpcUrl] } } } as const;
   const client = createWalletClient({
@@ -46,12 +47,13 @@ export async function writeRuleOnChain(
     transport: http(config.rpcUrl),
   });
 
+  // Prefer direct write to RuleRegistry (owner-only); no on-chain subscription needed
   const hash = await client.writeContract({
-    address: config.ruleRequestEmitterAddress,
-    abi: emitterAbi,
-    functionName: "requestRule",
+    address: config.ruleRegistryAddress,
+    abi: registryAbi,
+    functionName: "writeRuleByOwner",
     args: [
-      payload.id,
+      idBytes32,
       payload.asset,
       payload.condition,
       BigInt(payload.targetPriceUsd),
