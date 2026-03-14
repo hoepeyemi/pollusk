@@ -39,7 +39,7 @@ Pollusk fits **agentic automation + onchain** and **AI × Web3** tracks:
 | **Run-check** (read RuleRegistry, prices, Pushover) | [reactivity/src/runCheck.ts](reactivity/src/runCheck.ts) |
 | **Off-chain subscriptions** (filtered + wildcard) | [reactivity/src/subscriptions.ts](reactivity/src/subscriptions.ts) |
 | **Write rule on-chain** (RuleRequestEmitter.requestRule) | [reactivity/src/writeOnChain.ts](reactivity/src/writeOnChain.ts) |
-| **RuleRegistry** (Somnia reactivity only; no CRE) | [contracts/RuleRegistry.sol](contracts/RuleRegistry.sol) |
+| **RuleRegistry** (Somnia reactivity only) | [contracts/RuleRegistry.sol](contracts/RuleRegistry.sol) |
 
 ---
 

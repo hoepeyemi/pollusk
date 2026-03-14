@@ -1,5 +1,5 @@
 /**
- * Somnia Reactivity service: replaces Chainlink CRE with
+ * Somnia Reactivity service:
  * - Off-chain subscriptions (filtered + wildcard)
  * - Local cron (periodic run-check)
  * - HTTP /run-check and /write-alert

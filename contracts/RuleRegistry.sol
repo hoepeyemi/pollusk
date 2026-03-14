@@ -22,7 +22,7 @@ contract RuleRegistry is Ownable {
 
     /**
      * @notice Price alert rule structure
-     * @dev Rules are stored on-chain and can be queried by the CRE workflow
+     * @dev Rules are stored on-chain and can be queried by the reactivity service
      * @param id Deterministic rule ID (SHA256 hash of alert data) - bytes32 for on-chain compatibility
      * @param asset Cryptocurrency asset symbol (e.g., "BTC", "ETH", "LINK")
      * @param condition Price condition: "gt", "lt", "gte", or "lte"
@@ -184,7 +184,7 @@ contract RuleRegistry is Ownable {
      * @notice Write a rule from Somnia on-chain reactivity (event-driven)
      * @dev Only the address set as reactivityHandler can call this. Decodes ABI-encoded
      *      (bytes32 id, string asset, string condition, uint256 targetPriceUsd, uint256 createdAt).
-     * @param data ABI-encoded rule params; same format as CRE report payload
+     * @param data ABI-encoded rule params (id, asset, condition, targetPriceUsd, createdAt)
      */
     function writeRuleFromReactivity(bytes calldata data) external onlyReactivityHandler {
         (bytes32 id, string memory asset, string memory condition, uint256 targetPriceUsd, uint256 createdAt) =

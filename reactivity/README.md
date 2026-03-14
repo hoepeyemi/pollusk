@@ -1,6 +1,6 @@
 # Somnia Reactivity Service
 
-Replaces Chainlink CRE with [Somnia Reactivity](https://docs.somnia.network/developer/reactivity): off-chain subscriptions, cron-style run-check, and write-on-chain via RuleRequestEmitter. Used by the Pollusk server for on-demand run-check and persisting rules to RuleRegistry.
+[Somnia Reactivity](https://docs.somnia.network/developer/reactivity): off-chain subscriptions, cron-style run-check, and write-on-chain via RuleRequestEmitter. Used by the Pollusk server for on-demand run-check and persisting rules to RuleRegistry.
 
 ## Implementation
 
@@ -34,7 +34,7 @@ Replaces Chainlink CRE with [Somnia Reactivity](https://docs.somnia.network/deve
 | `REACTIVITY_RULE_TTL` | Rule TTL in seconds (default 1800). |
 | `REACTIVITY_PORT` | HTTP server port (default 3001). |
 | `PUSHOVER_USER_KEY_VAR`, `PUSHOVER_API_KEY_VAR` (or `PUSHOVER_USER_KEY`, `PUSHOVER_API_KEY`) | Pushover for notifications. |
-| `REACTIVITY_WRITER_PRIVATE_KEY` (or `CRE_ETH_PRIVATE_KEY`, `AGENT_WALLET_PRIVATE_KEY`) | Private key for /write-alert (calls emitter). |
+| `REACTIVITY_WRITER_PRIVATE_KEY` (or `AGENT_WALLET_PRIVATE_KEY`) | Private key for /write-alert (calls emitter). |
 
 ## Run
 

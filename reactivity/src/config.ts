@@ -35,7 +35,7 @@ export function getConfig(): ReactivityConfig {
     config.pushover = { userKey: pushoverUser, apiToken: pushoverToken };
   }
 
-  const pk = process.env.REACTIVITY_WRITER_PRIVATE_KEY ?? process.env.CRE_ETH_PRIVATE_KEY ?? process.env.AGENT_WALLET_PRIVATE_KEY;
+  const pk = process.env.REACTIVITY_WRITER_PRIVATE_KEY ?? process.env.AGENT_WALLET_PRIVATE_KEY;
   if (pk) {
     config.writerPrivateKey = pk.startsWith("0x") ? (pk as `0x${string}`) : (`0x${pk}` as `0x${string}`);
   }

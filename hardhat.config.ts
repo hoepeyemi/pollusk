@@ -8,7 +8,7 @@ import type { HardhatUserConfig } from "hardhat/config";
 import "@nomicfoundation/hardhat-ethers";
 
 const DEPLOYER_PRIVATE_KEY =
-  process.env.DEPLOYER_PRIVATE_KEY ?? process.env.CRE_ETH_PRIVATE_KEY ?? process.env.PRIVATE_KEY ?? "";
+  process.env.DEPLOYER_PRIVATE_KEY ?? process.env.PRIVATE_KEY ?? "";
 const RPC_URL = process.env.RPC_URL ?? "https://dream-rpc.somnia.network/";
 
 const config: HardhatUserConfig = {

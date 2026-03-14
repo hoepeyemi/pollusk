@@ -7,7 +7,7 @@ pragma solidity ^0.8.0;
  *        to this contract's RuleRequested event so that rules are written to RuleRegistry on-chain
  * @dev No access control; anyone can emit. Filter by emitter in the reactivity subscription.
  *      Event data is ABI-encoded (bytes32, string, string, uint256, uint256) matching
- *      RuleRegistry.writeRuleFromReactivity / CRE report format.
+ *      RuleRegistry.writeRuleFromReactivity payload format.
  */
 contract RuleRequestEmitter {
 

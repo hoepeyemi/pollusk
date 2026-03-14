@@ -35,7 +35,7 @@ export async function writeRuleOnChain(
   payload: RulePayload
 ): Promise<`0x${string}` | Error> {
   if (!config.ruleRequestEmitterAddress || !config.writerPrivateKey) {
-    return new Error("RULE_REQUEST_EMITTER_ADDRESS and REACTIVITY_WRITER_PRIVATE_KEY (or CRE_ETH_PRIVATE_KEY) required");
+    return new Error("RULE_REQUEST_EMITTER_ADDRESS and REACTIVITY_WRITER_PRIVATE_KEY required");
   }
 
   const account = privateKeyToAccount(config.writerPrivateKey);
