@@ -1,19 +1,21 @@
 /**
- * Price service: fetches current USD prices for BTC, ETH, LINK.
+ * Price service: fetches current USD prices for BTC, ETH, LINK, STT.
  * Used for "What's the current ETH price?" — backend maps NL to price data (blockchain abstraction).
  * Uses CoinGecko public API with a short cache to limit rate use.
+ * STT uses Somnia (SOMI) mainnet price as proxy for testnet STT.
  */
 
 const COINGECKO_IDS: Record<string, string> = {
   BTC: "bitcoin",
   ETH: "ethereum",
   LINK: "chainlink",
+  STT: "somnia",
 };
 
 const CACHE_TTL_MS = 60_000; // 1 minute
 let cached: { prices: Record<string, number>; at: number } | null = null;
 
-export type PriceAsset = "BTC" | "ETH" | "LINK";
+export type PriceAsset = "BTC" | "ETH" | "LINK" | "STT";
 
 export async function getPrices(): Promise<Record<string, number>> {
   if (cached && Date.now() - cached.at < CACHE_TTL_MS) {

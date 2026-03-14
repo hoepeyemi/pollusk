@@ -31,7 +31,7 @@ import * as scheduledAgent from "./scheduledAgent";
  * Architecture:
  * - /chat: Natural language interface for creating alerts (no payment required)
  *   - Uses OpenAI to extract alert parameters from user messages
- *   - Validates that only supported assets (BTC, ETH, LINK) are requested
+ *   - Validates that only supported assets (BTC, ETH, LINK, STT) are requested
  *   - Internally calls /alerts endpoint with x402 payment
  *
  * - /alerts: Direct alert creation endpoint (requires x402 payment)
@@ -91,9 +91,8 @@ const facilitatorUrl = (process.env.X402_FACILITATOR_URL ?? "https://x402.org/fa
 
 /**
  * Supported cryptocurrency assets for price alerts
- * Only BTC, ETH, and LINK are supported in this demo
  */
-const ALLOWED_ASSETS = ["BTC", "ETH", "LINK"] as const;
+const ALLOWED_ASSETS = ["BTC", "ETH", "LINK", "STT"] as const;
 
 /**
  * Supported price alert conditions
@@ -274,7 +273,7 @@ type AlertCondition = "gt" | "lt" | "gte" | "lte";
  * extract these parameters from natural language.
  */
 interface AlertRequestBody {
-  /** Cryptocurrency asset symbol (must be one of: BTC, ETH, LINK) */
+  /** Cryptocurrency asset symbol (must be one of: BTC, ETH, LINK, STT) */
   asset: string;
   /** Price condition (gt, lt, gte, lte) */
   condition: AlertCondition;
@@ -317,7 +316,7 @@ interface StoredAlert extends AlertRequestBody {
  * 6. Server creates paid alert via internal /alerts endpoint (x402 payment)
  * 7. Returns alert details and payment transaction hash
  *
- * Supported Assets: BTC, ETH, LINK only
+ * Supported Assets: BTC, ETH, LINK, STT only
  * Supported Conditions: gt (greater than), lt (less than), gte (>=), lte (<=)
  *
  * @route POST /chat
@@ -400,7 +399,7 @@ Supported assets: ${ALLOWED_ASSETS.join(", ")} only. You may call multiple tools
             parameters: {
               type: "object",
               properties: {
-                asset: { type: "string", enum: [...ALLOWED_ASSETS], description: "Asset: BTC, ETH, or LINK" },
+                asset: { type: "string", enum: [...ALLOWED_ASSETS], description: "Asset: BTC, ETH, LINK, or STT" },
               },
               required: ["asset"],
             },
@@ -621,7 +620,7 @@ Supported assets: ${ALLOWED_ASSETS.join(", ")} only. You may call multiple tools
  *
  * @route POST /alerts
  * @requires x402 payment ($0.01 USD in STT on Somnia testnet)
- * @body {string} asset - Cryptocurrency symbol (BTC, ETH, LINK)
+ * @body {string} asset - Cryptocurrency symbol (BTC, ETH, LINK, STT)
  * @body {string} condition - Price condition (gt, lt, gte, lte)
  * @body {number} targetPriceUsd - Target price in USD
  * @returns {Object} Created alert with ID and metadata
@@ -877,9 +876,9 @@ app.get("/alerts", (req, res) => {
 
 /**
  * GET /prices
- * Current USD prices for BTC, ETH, LINK (used by agent for "What's the current ETH price?").
+ * Current USD prices for BTC, ETH, LINK, STT (used by agent for "What's the current ETH price?").
  * Backend maps NL to price data — blockchain abstraction. No payment.
- * @query asset - Optional: BTC, ETH, or LINK for a single price
+ * @query asset - Optional: BTC, ETH, LINK, or STT for a single price
  */
 app.get("/prices", async (req, res) => {
   const asset = (req.query.asset as string)?.toUpperCase();
@@ -934,7 +933,7 @@ app.listen(PORT, async () => {
   console.log("   POST /agent/action (agent API: intent + params; chain/reactivity/x402 handled by server)");
   console.log("   POST /chat        (natural language; list, cancel, create one or more alerts)");
   console.log("   GET  /alerts      (list alerts by payer, no payment)");
-  console.log("   GET  /prices      (current BTC/ETH/LINK USD price, no payment)");
+  console.log("   GET  /prices      (current BTC/ETH/LINK/STT USD price, no payment)");
   console.log("   POST /alerts      (create alert, $0.01 STT)");
   console.log("   POST /alerts/cancel (soft-cancel by id or index, no payment)");
   console.log("   GET  /agent/summary (last scheduled agent summary)");

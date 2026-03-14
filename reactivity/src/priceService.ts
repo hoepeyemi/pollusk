@@ -1,10 +1,12 @@
 /**
- * Fetch BTC/ETH/LINK USD prices (CoinGecko). Used for cron/run-check condition evaluation.
+ * Fetch BTC/ETH/LINK/STT USD prices (CoinGecko). Used for cron/run-check condition evaluation.
+ * STT uses Somnia (SOMI) mainnet price as proxy for testnet STT.
  */
 const COINGECKO_IDS: Record<string, string> = {
   BTC: "bitcoin",
   ETH: "ethereum",
   LINK: "chainlink",
+  STT: "somnia",
 };
 
 const CACHE_TTL_MS = 60_000;

@@ -17,7 +17,7 @@
         {
           "description": "create_alert – requires x402 payment (402 then retry with X-Payment)",
           "properties": {
-            "asset": { "type": "string", "enum": ["BTC", "ETH", "LINK"] },
+            "asset": { "type": "string", "enum": ["BTC", "ETH", "LINK", "STT"] },
             "condition": { "type": "string", "enum": ["gt", "lt", "gte", "lte"] },
             "target": { "type": "number", "description": "Target price in USD" },
             "targetPriceUsd": { "type": "number", "description": "Target price in USD (alternative to target)" }
@@ -33,7 +33,7 @@
         {
           "description": "get_price – optional asset for single price",
           "properties": {
-            "asset": { "type": "string", "enum": ["BTC", "ETH", "LINK"] }
+            "asset": { "type": "string", "enum": ["BTC", "ETH", "LINK", "STT"] }
           }
         },
         {

@@ -105,7 +105,7 @@ paths:
               type: object
               required: [asset, condition, targetPriceUsd]
               properties:
-                asset: { type: string, enum: [BTC, ETH, LINK] }
+                asset: { type: string, enum: [BTC, ETH, LINK, STT] }
                 condition: { type: string, enum: [gt, lt, gte, lte] }
                 targetPriceUsd: { type: number }
       responses:
@@ -120,7 +120,7 @@ paths:
       parameters:
         - name: asset
           in: query
-          schema: { type: string, enum: [BTC, ETH, LINK] }
+          schema: { type: string, enum: [BTC, ETH, LINK, STT] }
       responses:
         "200":
           description: USD prices (single asset or all)

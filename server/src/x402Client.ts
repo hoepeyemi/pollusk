@@ -101,7 +101,7 @@ const ALERTS_API_URL = `http://localhost:${PORT}/alerts`;
  * Price alert payload for creating a new alert
  */
 export interface PriceAlertPayload {
-  /** Cryptocurrency asset symbol (BTC, ETH, or LINK) */
+  /** Cryptocurrency asset symbol (BTC, ETH, LINK, or STT) */
   asset: string;
   /** Price condition: gt (greater than), lt (less than), gte (>=), lte (<=) */
   condition: "gt" | "lt" | "gte" | "lte";

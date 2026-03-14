@@ -51,7 +51,7 @@ export async function runReasoningCycle(): Promise<{ summary: string; alertsCoun
   }
 
   const alertsText = alerts.map((a) => `- ${a.asset} ${a.condition} $${a.targetPriceUsd} (payer: ${a.payer.slice(0, 10)}...)`).join("\n");
-  const pricesText = `BTC: $${prices.BTC ?? 0}, ETH: $${prices.ETH ?? 0}, LINK: $${prices.LINK ?? 0}`;
+  const pricesText = `BTC: $${prices.BTC ?? 0}, ETH: $${prices.ETH ?? 0}, LINK: $${prices.LINK ?? 0}, STT: $${prices.STT ?? 0}`;
   const triggeredText = triggered.length
     ? `Conditions currently met: ${triggered.map((t) => `${t.asset} ${t.condition} $${t.targetPriceUsd} (current $${t.current})`).join("; ")}.`
     : "No conditions currently met.";

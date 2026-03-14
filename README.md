@@ -20,7 +20,7 @@ Pollusk fits **agentic automation + onchain** and **AI × Web3** tracks:
 
 | Area | Implementation |
 |------|----------------|
-| **Chat** | Natural language over `/chat`: create one or more alerts, list alerts, cancel by id or index, get current price (BTC/ETH/LINK), **run alerts check now**. Uses OpenAI (e.g. `gpt-4o-mini`) with tool calling. |
+| **Chat** | Natural language over `/chat`: create one or more alerts, list alerts, cancel by id or index, get current price (BTC/ETH/LINK/STT), **run alerts check now**. Uses OpenAI (e.g. `gpt-4o-mini`) with tool calling. |
 | **Agent API** | `POST /agent/action` with intents: `create_alert`, `list_alerts`, `get_price`, `cancel_alert`, `run_alerts_check`. 402 for paid intents with `agentAction.forwardTo`; optional `X-Agent-Wallet` for list/cancel. [OpenAPI](docs/agent-api.openapi.yaml) \| [Tool schema](docs/agent-tools.schema.json). |
 | **Scheduled agent** | Optional periodic job (`SCHEDULED_AGENT_INTERVAL_MS`): reads all alerts + current prices, calls LLM for a short summary/suggestion, stores last result. `GET /agent/summary` returns last summary and timestamp. |
 | **Run alerts check** | Server-side “which alerts would trigger now?” plus optional reactivity run: `POST /agent/run-alerts-check` or intent `run_alerts_check` (and from chat). If `REACTIVITY_RUN_CHECK_URL` is set, server POSTs to that base URL’s `/run-check` (rules + prices + Pushover). |
@@ -215,7 +215,7 @@ Set `REACTIVITY_RUN_CHECK_URL` in `.env` (e.g. `http://localhost:3001`) so `POST
 | GET | `/agent/summary` | Last scheduled agent summary (alerts + prices, LLM). |
 | POST | `/agent/run-alerts-check` | Run alerts check now; optionally calls reactivity `/run-check` if `REACTIVITY_RUN_CHECK_URL` set. |
 | GET | `/alerts` | List alerts by `?payer=`. |
-| GET | `/prices` | Current BTC/ETH/LINK USD (optional `?asset=`). |
+| GET | `/prices` | Current BTC/ETH/LINK/STT USD (optional `?asset=`). |
 | POST | `/alerts` | Create alert (x402 $0.01 STT). |
 | POST | `/alerts/cancel` | Cancel by `alertId` or `alertIndex` (body: `payer`, `alertId` or `alertIndex`). |
 
@@ -275,7 +275,7 @@ Rules can be written on-chain via [Somnia reactivity](https://docs.somnia.networ
 
 ## Supported features
 
-- **Assets:** BTC, ETH, LINK.
+- **Assets:** BTC, ETH, LINK, STT.
 - **Conditions:** `gt`, `lt`, `gte`, `lte`.
 - **Payment:** $0.01 STT per alert creation (x402).
 - **Storage:** In-memory alert store + on-chain RuleRegistry via Somnia reactivity.
