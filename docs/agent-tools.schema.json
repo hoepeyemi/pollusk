@@ -1,0 +1,54 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Pollusk Agent API – Intents and Params",
+  "description": "Schema for POST /agent/action: intent + params. Use with X-Agent-Wallet header for list_alerts and cancel_alert.",
+  "type": "object",
+  "required": ["intent"],
+  "properties": {
+    "intent": {
+      "type": "string",
+      "enum": ["create_alert", "list_alerts", "get_price", "cancel_alert", "run_alerts_check"],
+      "description": "Action to perform"
+    },
+    "params": {
+      "type": "object",
+      "description": "Intent-specific parameters",
+      "oneOf": [
+        {
+          "description": "create_alert – requires x402 payment (402 then retry with X-Payment)",
+          "properties": {
+            "asset": { "type": "string", "enum": ["BTC", "ETH", "LINK"] },
+            "condition": { "type": "string", "enum": ["gt", "lt", "gte", "lte"] },
+            "target": { "type": "number", "description": "Target price in USD" },
+            "targetPriceUsd": { "type": "number", "description": "Target price in USD (alternative to target)" }
+          },
+          "required": ["asset", "condition"]
+        },
+        {
+          "description": "list_alerts – use X-Agent-Wallet header or params.payer",
+          "properties": {
+            "payer": { "type": "string", "description": "Wallet address (or set X-Agent-Wallet)" }
+          }
+        },
+        {
+          "description": "get_price – optional asset for single price",
+          "properties": {
+            "asset": { "type": "string", "enum": ["BTC", "ETH", "LINK"] }
+          }
+        },
+        {
+          "description": "cancel_alert – use X-Agent-Wallet or params.payer; provide alert_id OR alert_index",
+          "properties": {
+            "payer": { "type": "string" },
+            "alert_id": { "type": "string", "description": "Alert ID from list" },
+            "alert_index": { "type": "integer", "minimum": 1, "description": "1-based position (e.g. 2 = second alert)" }
+          }
+        },
+        {
+          "description": "run_alerts_check – no params",
+          "properties": {}
+        }
+      ]
+    }
+  }
+}
