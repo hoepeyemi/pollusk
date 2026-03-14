@@ -286,6 +286,6 @@ Rules can be written on-chain via [Somnia reactivity](https://docs.somnia.networ
 
 ## Reference
 
-- **LinkLab / Book:** [smartcontractkit.github.io/x402-cre-price-alerts](https://smartcontractkit.github.io/x402-cre-price-alerts/)
+
 - **x402:** [x402.org](https://x402.org/)
 - **Somnia Reactivity:** [docs.somnia.network/developer/reactivity](https://docs.somnia.network/developer/reactivity)
