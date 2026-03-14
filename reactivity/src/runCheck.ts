@@ -66,7 +66,7 @@ export async function runAlertsCheck(config: ReactivityConfig): Promise<RunCheck
   for (const { rule, currentPrice } of triggered) {
     const sym = rule.condition === "gt" ? ">" : rule.condition === "gte" ? ">=" : rule.condition === "lt" ? "<" : "<=";
     const msg = `${rule.asset} is now $${currentPrice.toFixed(2)} (alert: ${sym} $${Number(rule.targetPriceUsd)})`;
-    const ok = await sendPushover(config, "Boscopan", msg);
+    const ok = await sendPushover(config, "Pollusk", msg);
     if (ok) notificationsSent++;
   }
 

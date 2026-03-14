@@ -21,9 +21,9 @@ import * as priceService from "./priceService";
 import * as scheduledAgent from "./scheduledAgent";
 
 /**
- * Boscopan — Unified API Server
+ * Pollusk — Unified API Server
  *
- * This server runs Boscopan, a crypto price alert system that combines:
+ * This server runs Pollusk, a crypto price alert system that combines:
  * - Natural language processing (via OpenAI API)
  * - x402 payment protocol for micropayments
  * - Somnia reactivity for on-chain rules and run-check (subscriptions, cron)
@@ -929,7 +929,7 @@ app.post("/alerts/cancel", (req, res) => {
 
 app.listen(PORT, async () => {
   console.log("\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
-  console.log("Boscopan — Server ready");
+  console.log("Pollusk — Server ready");
   console.log(`   http://localhost:${PORT}`);
   console.log("   POST /agent/action (agent API: intent + params; chain/reactivity/x402 handled by server)");
   console.log("   POST /chat        (natural language; list, cancel, create one or more alerts)");

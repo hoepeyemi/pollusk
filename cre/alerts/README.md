@@ -1,4 +1,12 @@
-# Typescript Simple Workflow Example
+# Legacy Chainlink CRE Alerts Workflow
+
+This directory is the **legacy Chainlink CRE (Compute Runtime Environment)** workflow template for alerts. **Pollusk does not use CRE in production.** Alerts, run-check, and write-on-chain are implemented by the **Somnia reactivity service** (cron, `/run-check`, `/write-alert`). See the [project root README](../../README.md) and [reactivity README](../../reactivity/README.md) for the current implementation.
+
+If you use the CRE CLI for simulation or reference, follow the steps below.
+
+---
+
+## Typescript Simple Workflow Example
 
 This template provides a simple Typescript workflow example. It shows how to create a simple "Hello World" workflow using Typescript.
 

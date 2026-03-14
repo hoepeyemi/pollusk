@@ -29,7 +29,8 @@ export function createSdk() {
 export const RULE_REQUESTED_TOPIC = "0x" + "a1b2c3d4".padEnd(64, "0"); // placeholder; use actual keccak256 in production
 
 /**
- * Start filtered off-chain subscription: only RuleRequested events from RuleRequestEmitter.
+ * Start filtered off-chain subscription. SDK type only allows ethCalls + onData;
+ * filter by emitter in onData if needed (e.g. data.emitter === emitterAddress).
  */
 export async function startFilteredSubscription(
   emitterAddress: `0x${string}`,
@@ -37,9 +38,11 @@ export async function startFilteredSubscription(
 ) {
   const sdk = createSdk();
   const subscription = await sdk.subscribe({
-    emitter: emitterAddress,
-    // eventTopics: [RULE_REQUESTED_TOPIC] if SDK supports topic filter
-    onData,
+    ethCalls: [],
+    onData: (data: unknown) => {
+      const d = data as { emitter?: string };
+      if (d?.emitter?.toLowerCase() === emitterAddress.toLowerCase()) onData(data);
+    },
   });
   return subscription;
 }
@@ -50,6 +53,7 @@ export async function startFilteredSubscription(
 export async function startWildcardSubscription(onData: (data: unknown) => void) {
   const sdk = createSdk();
   const subscription = await sdk.subscribe({
+    ethCalls: [],
     onData,
   });
   return subscription;

@@ -346,7 +346,7 @@ const postPushoverData =
       token: secrets.pushoverApiKey,
       user: secrets.pushoverUserId,
       message: message,
-      title: "Boscopan",
+      title: "Pollusk",
     };
 
     const bodyBytes = new TextEncoder().encode(JSON.stringify(pushoverPayload));

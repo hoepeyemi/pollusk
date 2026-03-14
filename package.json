@@ -1,8 +1,8 @@
 {
-  "name": "boscopan",
+  "name": "pollusk",
   "version": "1.0.0",
   "private": true,
-  "description": "Boscopan: crypto price alert system using x402 payments, Somnia reactivity, and on-chain smart contracts",
+  "description": "Pollusk: crypto price alert system using x402 payments, Somnia reactivity, and on-chain smart contracts",
   "workspaces": [
     "server",
     "reactivity"

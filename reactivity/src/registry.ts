@@ -47,21 +47,18 @@ export async function getAllRules(
     functionName: "getRuleCount",
   });
   const rules: Rule[] = [];
+  type RuleResult = { id: `0x${string}`; asset: string; condition: string; targetPriceUsd: bigint; createdAt: bigint };
   for (let i = 0; i < Number(count); i++) {
     const rule = await client.readContract({
       address: registryAddress,
       abi: registryAbi,
       functionName: "getRule",
       args: [BigInt(i)],
-    });
-    const id = typeof rule[0] !== "undefined" ? rule[0] : (rule as any).id;
-    const asset = typeof rule[1] !== "undefined" ? rule[1] : (rule as any).asset;
-    const condition = typeof rule[2] !== "undefined" ? rule[2] : (rule as any).condition;
-    const targetPriceUsd = typeof rule[3] !== "undefined" ? rule[3] : (rule as any).targetPriceUsd;
-    const createdAt = typeof rule[4] !== "undefined" ? rule[4] : (rule as any).createdAt;
+    }) as RuleResult;
+    const { id, asset, condition, targetPriceUsd, createdAt } = rule;
     if (createdAt === undefined || createdAt === null) continue;
     rules.push({
-      id: id as `0x${string}`,
+      id,
       asset: String(asset ?? ""),
       condition: String(condition ?? ""),
       targetPriceUsd: BigInt(targetPriceUsd ?? 0),

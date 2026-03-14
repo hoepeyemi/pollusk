@@ -1,16 +1,16 @@
-# Boscopan
+# Pollusk
 
 **Autonomous AI agents + on-chain price alerts.** Natural language, x402 micropayments, Somnia reactivity, and Somnia testnet
 
 ---
 
-## why Boscopan
+## why Pollusk
 
-Boscopan fits **agentic automation + onchain** and **AI × Web3** tracks:
+Pollusk fits **agentic automation + onchain** and **AI × Web3** tracks:
 
 - **AI agent as the interface** — Users (or other agents) talk in plain language: *"Alert me when ETH > 4000"*, *"List my alerts"*, *"Run my alerts check now"*. No RPC, ABI, or wallet UX in the conversation.
-- **Agent-initiated CRE execution** — A scheduled job reasons over alerts + prices with an LLM and stores a summary. You can also trigger the same “alerts check” on demand from chat or via `POST /agent/run-alerts-check`, optionally calling your deployed CRE workflow (prices + RuleRegistry + Pushover).
-- **Single agent API** — One `POST /agent/action` with `intent` + `params`. The server handles chain, CRE, and x402. For paid actions (e.g. create alert), the server returns 402; the agent pays then retries. Perfect for AI agents that need a “blockchain lite” API.
+- **Agent-initiated reactivity run-check** — A scheduled job reasons over alerts + prices with an LLM and stores a summary. You can also trigger “alerts check” on demand from chat or via `POST /agent/run-alerts-check`; when `REACTIVITY_RUN_CHECK_URL` is set, the server POSTs to the reactivity service (rules + prices + Pushover).
+- **Single agent API** — One `POST /agent/action` with `intent` + `params`. The server handles chain, reactivity, and x402. For paid actions (e.g. create alert), the server returns 402; the agent pays then retries. Perfect for AI agents that need a “blockchain lite” API.
 - **x402 micropayments** — Create-alert is gated by $0.01 STT (Somnia testnet). Demonstrates payment-protected APIs and agentic payments.
 - **On-chain + Somnia reactivity** — Rules are written to RuleRegistry via Somnia on-chain reactivity (RuleRequestEmitter → handler → writeRuleFromReactivity). The reactivity service provides off-chain subscriptions (filtered + wildcard), cron, and HTTP /run-check and /write-alert.
 
@@ -23,11 +23,11 @@ Boscopan fits **agentic automation + onchain** and **AI × Web3** tracks:
 | **Chat** | Natural language over `/chat`: create one or more alerts, list alerts, cancel by id or index, get current price (BTC/ETH/LINK), **run alerts check now**. Uses OpenAI (e.g. `gpt-4o-mini`) with tool calling. |
 | **Agent API** | `POST /agent/action` with intents: `create_alert`, `list_alerts`, `get_price`, `cancel_alert`, `run_alerts_check`. 402 for paid intents with `agentAction.forwardTo`; optional `X-Agent-Wallet` for list/cancel. [OpenAPI](docs/agent-api.openapi.yaml) \| [Tool schema](docs/agent-tools.schema.json). |
 | **Scheduled agent** | Optional periodic job (`SCHEDULED_AGENT_INTERVAL_MS`): reads all alerts + current prices, calls LLM for a short summary/suggestion, stores last result. `GET /agent/summary` returns last summary and timestamp. |
-| **Run alerts check** | Server-side “which alerts would trigger now?” plus optional CRE run: `POST /agent/run-alerts-check` or intent `run_alerts_check` (and from chat). If `CRE_RUN_CHECK_URL` is set, server also POSTs to that URL to trigger full CRE (Chainlink prices + RuleRegistry + Pushover). |
+| **Run alerts check** | Server-side “which alerts would trigger now?” plus optional reactivity run: `POST /agent/run-alerts-check` or intent `run_alerts_check` (and from chat). If `REACTIVITY_RUN_CHECK_URL` is set, server POSTs to that base URL’s `/run-check` (rules + prices + Pushover). |
 | **x402** | Create-alert protected by x402 ($0.01 STT). 402 challenge → agent pays → server validates and creates alert. |
-| **CRE workflow** | HTTP trigger (write alert to RuleRegistry), Cron trigger (prices + conditions + Pushover), **Run-check HTTP trigger** (same logic as cron, for on-demand runs). |
-| **Backend state** | In-memory alert store by payer; cancel by `alertId` or 1-based index. Price service (e.g. CoinGecko, cached). |
-| **Contract & deploy** | `RuleRegistry.sol` on Base Sepolia; Hardhat deploy script: `npm run deploy:rule-registry`. |
+| **Reactivity service** | Cron (periodic run-check), HTTP `POST /run-check` (on-demand), HTTP `POST /write-alert` (write rule on-chain via RuleRequestEmitter). Off-chain subscriptions (filtered + wildcard). |
+| **Backend state** | In-memory alert store by payer; cancel by `alertId` or 1-based index. Price service (CoinGecko, cached). On-chain rules in RuleRegistry via Somnia reactivity. |
+| **Contract & deploy** | `RuleRegistry.sol` on Somnia testnet (STT token); Hardhat: `npm run deploy:rule-registry`, then `npm run deploy:reactivity` for handler + emitter. |
 
 ---
 
@@ -47,7 +47,7 @@ Boscopan fits **agentic automation + onchain** and **AI × Web3** tracks:
 
 ```mermaid
 flowchart LR
-    User[User / Agent] -->|Chat or POST /agent/action| Server[Boscopan Server]
+    User[User / Agent] -->|Chat or POST /agent/action| Server[Pollusk Server]
     Server -->|x402| Payments[x402]
     Server -->|Intent: create_alert| Alerts[Alert Store]
     Server -->|Optional| Reactivity[Reactivity Service]
@@ -58,7 +58,7 @@ flowchart LR
     Reactivity -->|Notify| Pushover[Pushover]
 ```
 
-- **User/Agent** → Boscopan server (chat or agent API).
+- **User/Agent** → Pollusk server (chat or agent API).
 - **Server** → x402 for create-alert; optional POST to reactivity `/write-alert` and `/run-check`.
 - **Reactivity** → Cron + HTTP /run-check (read RuleRegistry, prices, Pushover); /write-alert → RuleRequestEmitter → on-chain handler → RuleRegistry.
 
@@ -73,13 +73,13 @@ flowchart LR
    Deploy RuleRegistry (see [Deploy RuleRegistry](#0-deploy-rulegistry-on-somnia-testnet)) then deploy reactivity; set `X402_RECEIVER_ADDRESS` and `RULE_REQUEST_EMITTER_ADDRESS`.
 
 3. **Run server (with chat)**  
-   `npm run dev:server` → Boscopan at `http://localhost:3000` with interactive chat.
+   `npm run dev:server` → Pollusk at `http://localhost:3000` with interactive chat.
 
 4. **Try it**  
    In chat: *"Create an alert when BTC is greater than 60000"* (payment flow); *"List my alerts"*; *"What’s the current ETH price?"*; *"Run my alerts check now"*.
 
-5. **CRE**  
-   Use CRE CLI to simulate HTTP trigger (write alert on-chain) and Cron (or run-check) for prices and notifications. Set `CRE_RUN_CHECK_URL` to your deployed run-check URL to have “run alerts check” trigger full CRE.
+5. **Reactivity (optional)**  
+   Run `npm run dev:reactivity` and set `REACTIVITY_RUN_CHECK_URL=http://localhost:3001` so “run alerts check” and create-alert can call the reactivity service (`/run-check`, `/write-alert`). Notifications use Pushover when rules trigger.
 
 ---
 
@@ -112,7 +112,7 @@ Alternatively use [Remix](https://remix.ethereum.org/) with constructor `(STT_TO
 
 ```bash
 git clone <your-repo-url>
-cd boscopan
+cd pollusk
 npm install
 ```
 
@@ -137,13 +137,13 @@ For the reactivity service: set `RULE_REGISTRY_ADDRESS` (or `X402_RECEIVER_ADDRE
 
 ## Execution
 
-### Start Boscopan (with chat)
+### Start Pollusk (with chat)
 
 ```bash
 npm run dev:server
 ```
 
-You should see **Boscopan — Server ready** and the list of routes (e.g. `POST /agent/action`, `POST /chat`, `GET /agent/summary`, `POST /agent/run-alerts-check`). Interactive chat is enabled; type messages and press Enter.
+You should see **Pollusk — Server ready** and the list of routes (e.g. `POST /agent/action`, `POST /chat`, `GET /agent/summary`, `POST /agent/run-alerts-check`). Interactive chat is enabled; type messages and press Enter.
 
 ### Create alert (natural language)
 
@@ -227,10 +227,10 @@ Full spec: [docs/agent-api.openapi.yaml](docs/agent-api.openapi.yaml). Tool sche
 
 | Path | Purpose |
 |------|--------|
-| `server/` | Boscopan API: Express, chat, agent action, x402, alert store, price service, scheduled agent. |
+| `server/` | Pollusk API: Express, chat, agent action, x402, alert store, price service, scheduled agent. |
 | `server/src/server.ts` | Routes: `/chat`, `/agent/action`, `/agent/summary`, `/agent/run-alerts-check`, `/alerts`, `/prices`, `/alerts/cancel`. |
 | `server/src/scheduledAgent.ts` | Periodic reasoning (alerts + prices → LLM summary), `runAlertsCheckNow()`. |
-| `server/src/chat.ts` | Interactive terminal chat for Boscopan. |
+| `server/src/chat.ts` | Interactive terminal chat for Pollusk. |
 | `server/src/alertStore.ts` | In-memory alerts by payer; cancel by id or index. |
 | `server/src/priceService.ts` | Current prices (e.g. CoinGecko), cached. |
 | `server/src/x402Client.ts` | x402 payment client for paid alert creation. |
@@ -240,7 +240,7 @@ Full spec: [docs/agent-api.openapi.yaml](docs/agent-api.openapi.yaml). Tool sche
 | `contracts/RuleRequestEmitter.sol` | Emits RuleRequested for reactivity-driven rule writes. |
 | `scripts/deploy-RuleRegistry.ts` | Hardhat deploy for RuleRegistry on Somnia testnet. |
 | `scripts/deploy-reactivity.ts` | Deploy reactivity handler + emitter and set handler on RuleRegistry. |
-| `docs/agent-api.openapi.yaml` | OpenAPI for Boscopan agent API. |
+| `docs/agent-api.openapi.yaml` | OpenAPI for Pollusk agent API. |
 | `docs/agent-tools.schema.json` | JSON schema for agent intents/params. |
 
 ---
